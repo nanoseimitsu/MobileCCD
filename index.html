@@ -1,0 +1,955 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gear Inspector v2</title>
+<style>
+:root{
+  --ink:#14181E; --panel:#EFEDE8; --card:#FFF; --line:#D6D2C9; --steel:#6B7480;
+  --dark:#0E1116; --amber:#E2650D; --ok:#14875A; --ng:#D22B2B;
+  --mono: ui-monospace,"SF Mono",Menlo,Consolas,"Roboto Mono",monospace;
+  --sans: system-ui,-apple-system,"Noto Sans Thai","Noto Sans JP","Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--panel);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45}
+#app{max-width:580px;margin:0 auto;padding-bottom:40px}
+header{display:flex;align-items:center;gap:8px;padding:12px 14px 8px}
+header h1{font-size:16px;margin:0;font-weight:650}
+header .sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--steel)}
+.lbl{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--steel)}
+select,input[type=text],input[type=number]{font-family:var(--sans);font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:3px;background:#fff;color:var(--ink);min-width:0}
+button{font-family:var(--sans);font-size:14px;font-weight:600;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:8px 13px;border-radius:3px;cursor:pointer}
+button.ghost{background:transparent;color:var(--ink)}
+button.amber{background:var(--amber);border-color:var(--amber)}
+button.sm{font-size:12px;padding:5px 9px;font-weight:500}
+button:disabled{opacity:.35}
+input[type=range]{flex:1;accent-color:var(--amber)}
+
+nav{display:flex;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+nav button{flex:1;border:0;border-radius:0;background:transparent;color:var(--steel);font-size:13px;padding:11px 4px;border-bottom:2px solid transparent}
+nav button.on{color:var(--ink);border-bottom-color:var(--amber)}
+.tab{display:none} .tab.on{display:block}
+
+.stage{position:relative;background:var(--dark);overflow:hidden}
+#view{display:block;width:100%;height:auto;touch-action:none}
+.badge{position:absolute;top:8px;right:8px;font-family:var(--mono);font-weight:700;font-size:13px;letter-spacing:.08em;padding:5px 11px;border-radius:3px;background:#2A2F38;color:#C9D0D9}
+.badge.ok{background:var(--ok);color:#fff} .badge.ng{background:var(--ng);color:#fff}
+.hint{position:absolute;left:8px;bottom:8px;right:8px;font-size:12px;color:#AEB6C0;background:rgba(14,17,22,.75);padding:5px 8px;border-radius:3px}
+.stage.flash{animation:fl .5s ease-out}
+@keyframes fl{0%{box-shadow:inset 0 0 0 12px var(--ng)}100%{box-shadow:inset 0 0 0 0 transparent}}
+
+.readout{display:grid;grid-template-columns:1.2fr 1fr 1.1fr;background:var(--dark);color:#E8ECF1;border-top:1px solid #232830}
+.readout div{padding:8px 10px 10px;border-right:1px solid #232830}
+.readout div:last-child{border-right:0}
+.readout .lbl{color:#7C8896}
+.big{font-family:var(--mono);font-size:38px;font-weight:700;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.med{font-family:var(--mono);font-size:23px;font-weight:600;line-height:1.5;font-variant-numeric:tabular-nums}
+#dCount.ok{color:#4ADE80} #dCount.ng{color:#FF7A70}
+.mmbar{background:#161A21;color:#9AA6B4;font-family:var(--mono);font-size:11.5px;padding:6px 10px;display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid #232830}
+.mmbar b{color:#E8ECF1;font-weight:600}
+
+section{background:var(--card);margin:10px;border:1px solid var(--line);border-radius:4px}
+section>h2{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--steel);margin:0;padding:9px 11px 7px;border-bottom:1px solid var(--line);font-weight:600}
+.body{padding:11px}
+.row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.row+.row{margin-top:9px}
+.stepper{display:flex;border:1px solid var(--ink);border-radius:3px;overflow:hidden}
+.stepper button{border:0;border-radius:0;width:40px;font-size:19px;padding:5px 0}
+.stepper input{border:0;width:70px;text-align:center;font-family:var(--mono);font-size:21px;font-weight:700}
+.slide{display:flex;align-items:center;gap:9px;margin-top:9px}
+.slide .lbl{width:96px;flex:none}
+.slide .val{font-family:var(--mono);font-size:12px;width:46px;text-align:right;color:var(--steel)}
+label.sw{display:flex;align-items:center;gap:6px;font-size:14px}
+.note{font-size:12.5px;color:var(--steel);margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:3px;padding:4px 8px;font-size:13px;cursor:pointer}
+.chip.on{border-color:var(--amber);background:#FEF3E8}
+.chip b{font-family:var(--mono)}
+.dots{display:flex;gap:5px;align-items:center}
+.dot{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:var(--steel)}
+.dot.f{background:var(--ok);border-color:var(--ok);color:#fff}
+.dot.n{background:var(--ng);border-color:var(--ng);color:#fff}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--steel);text-align:left;font-weight:600;padding:5px 7px;border-bottom:1px solid var(--line)}
+td{padding:5px 7px;border-bottom:1px solid #F1EFEA;vertical-align:middle;font-variant-numeric:tabular-nums}
+td.st-ok{color:var(--ok);font-weight:600} td.st-ng{color:var(--ng);font-weight:700}
+td img{width:40px;height:40px;object-fit:cover;border-radius:2px;border:1px solid var(--line);display:block;cursor:pointer}
+.empty{color:var(--steel);font-size:13px;padding:5px 2px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.kpi div{background:#fff;padding:8px 6px;text-align:center}
+.kpi .v{font-family:var(--mono);font-size:21px;font-weight:700;line-height:1.2}
+.kpi .v.ng{color:var(--ng)} .kpi .v.ok{color:var(--ok)}
+.warnbar{background:#FEF3E8;border:1px solid #F3D3AE;color:#7A4A10;font-size:13px;padding:8px 10px;border-radius:3px;margin:10px}
+canvas.chart{width:100%;height:auto;display:block}
+
+/* โหมดเดโม */
+body.demo #app{max-width:none}
+body.demo nav,body.demo section,body.demo header .sub{display:none}
+body.demo .big{font-size:64px}
+body.demo .med{font-size:34px}
+body.demo .badge{font-size:26px;padding:10px 22px}
+body.demo .readout{grid-template-columns:1.2fr 1fr 1.1fr}
+#demoOut{display:none;position:fixed;right:10px;top:10px;z-index:20}
+body.demo #demoOut{display:block}
+</style>
+
+<div id="app">
+<header>
+  <div style="flex:1">
+    <h1 id="ttl">ตรวจเฟืองอัตโนมัติ</h1>
+    <div class="sub">Gear Inspector v2 · Nano Seimitsu</div>
+  </div>
+  <select id="lang" style="width:78px">
+    <option value="th">ไทย</option><option value="en">EN</option><option value="ja">日本語</option>
+  </select>
+</header>
+
+<nav>
+  <button data-tab="inspect" class="on" data-i="tabInspect">ตรวจ</button>
+  <button data-tab="teach" data-i="tabTeach">สอนงาน</button>
+  <button data-tab="stats" data-i="tabStats">สถิติ</button>
+  <button data-tab="set" data-i="tabSet">ตั้งค่า</button>
+</nav>
+
+<div id="secWarn" class="warnbar" style="display:none"></div>
+
+<div class="stage" id="stage">
+  <canvas id="view" width="384" height="512"></canvas>
+  <div class="badge" id="badge" data-i="ready">พร้อม</div>
+  <div class="hint" id="hint"></div>
+</div>
+<button id="demoOut" class="sm ghost" style="background:#fff" data-i="exitDemo">ออกจากเดโม</button>
+
+<div class="readout">
+  <div><div class="lbl" data-i="rCount">นับได้</div><div class="big" id="dCount">–</div></div>
+  <div><div class="lbl" data-i="rTarget">ตั้งไว้</div><div class="med" id="dSet">20</div></div>
+  <div><div class="lbl" data-i="rSim">เหมือนมาสเตอร์</div><div class="med" id="dSim">–</div></div>
+</div>
+<div class="mmbar" id="mmbar" style="display:none"></div>
+
+<!-- ================= TAB: ตรวจ ================= -->
+<div class="tab on" id="tab-inspect">
+  <section><div class="body">
+    <div class="row">
+      <button id="btnStart" class="amber" data-i="start">เริ่มกล้อง</button>
+      <button id="btnStop" class="ghost" disabled data-i="stop">หยุด</button>
+      <button id="btnTorch" class="ghost sm" style="display:none" data-i="torch">ไฟฉาย</button>
+      <button id="btnShot" class="ghost sm" data-i="rec">บันทึกผลตอนนี้</button>
+    </div>
+    <div class="row">
+      <select id="jobSel" style="flex:1"></select>
+      <button id="btnQR" class="ghost sm" data-i="qr">สแกน QR</button>
+    </div>
+    <div class="row">
+      <span class="lbl" style="width:96px" data-i="teeth">จำนวนฟัน</span>
+      <div class="stepper"><button id="tMinus">−</button><input id="target" type="number" value="20" min="4" max="120" inputmode="numeric"><button id="tPlus">+</button></div>
+      <button id="btnTeach" class="ghost sm" data-i="learn">สอนค่าจากชิ้นงาน</button>
+    </div>
+  </div></section>
+  <section><h2 data-i="logTitle">บันทึกผลตรวจ</h2><div class="body">
+    <div class="row" style="margin-bottom:9px">
+      <button id="btnCsv" class="ghost sm" data-i="csv">ดาวน์โหลด CSV</button>
+      <button id="btnImgs" class="ghost sm" data-i="ngimg">รูป NG</button>
+      <button id="btnClear" class="ghost sm" data-i="clear">ล้าง</button>
+      <span class="lbl" style="margin-left:auto" id="logStat">0</span>
+    </div>
+    <div id="logWrap"><div class="empty" data-i="noLog">ยังไม่มีบันทึก</div></div>
+  </div></section>
+</div>
+
+<!-- ================= TAB: สอนงาน ================= -->
+<div class="tab" id="tab-teach">
+  <section><h2 data-i="jobTitle">รุ่นงาน</h2><div class="body">
+    <div class="row">
+      <input id="jName" type="text" placeholder="Part No." style="flex:1">
+      <input id="jTeeth" type="number" placeholder="ฟัน" min="4" max="120" style="width:74px">
+      <button id="jAdd" class="sm" data-i="add">เพิ่ม</button>
+    </div>
+    <div class="row" id="jobList"></div>
+  </div></section>
+
+  <section><h2 data-i="masterTitle">มาสเตอร์</h2><div class="body">
+    <div class="row"><span class="lbl" style="width:96px">OK</span>
+      <div class="dots" id="dotsOK"></div>
+      <button id="capOK" class="amber sm" data-i="capOK">เก็บมาสเตอร์ OK</button></div>
+    <div class="row"><span class="lbl" style="width:96px">NG</span>
+      <div class="dots" id="dotsNG"></div>
+      <button id="capNG" class="ghost sm" data-i="capNG">เก็บตัวอย่าง NG</button></div>
+    <div class="row"><button id="clrM" class="ghost sm" data-i="clrM">ล้างมาสเตอร์ของรุ่นนี้</button></div>
+    <div class="note" data-i="mNote">เก็บชิ้นดี 5 ตัว หมุนหลายมุมและระยะต่างกันเล็กน้อย ระบบจะเรียนรูปทรงฟันเฉลี่ยและช่วงยอมรับ ตัวอย่าง NG ใส่หรือไม่ใส่ก็ได้ ใช้เป็นตัวเทียบเพิ่มเท่านั้น</div>
+    <div class="note" id="mInfo"></div>
+  </div></section>
+
+  <section><h2 data-i="calTitle">คาลิเบรตหน่วยมิลลิเมตร</h2><div class="body">
+    <div class="row">
+      <span class="lbl" style="width:96px" data-i="odMaster">OD มาสเตอร์</span>
+      <input id="odmm" type="number" step="0.01" placeholder="mm" style="width:110px">
+      <button id="odSave" class="sm" data-i="save">บันทึก</button>
+    </div>
+    <div class="note" data-i="calNote">วัด OD ของชิ้นมาสเตอร์ด้วยเวอร์เนียร์แล้วกรอกครั้งเดียว ค่าที่ได้ใช้คัดของผิดรุ่นและดูแนวโน้ม ความคลาดเคลื่อนจากมุมกล้องราว ±0.3–0.5 mm ยังใช้แทนเครื่องมือวัดไม่ได้</div>
+  </div></section>
+</div>
+
+<!-- ================= TAB: สถิติ ================= -->
+<div class="tab" id="tab-stats">
+  <section><h2 data-i="yieldTitle">ผลรวม</h2><div class="body">
+    <div class="kpi">
+      <div><div class="lbl" data-i="kTotal">ตรวจ</div><div class="v" id="kTotal">0</div></div>
+      <div><div class="lbl">OK</div><div class="v ok" id="kOK">0</div></div>
+      <div><div class="lbl">NG</div><div class="v ng" id="kNG">0</div></div>
+      <div><div class="lbl">%NG</div><div class="v" id="kRate">0</div></div>
+    </div>
+    <div class="row" style="margin-top:9px"><button id="kReset" class="ghost sm" data-i="resetCount">รีเซ็ตตัวนับ</button></div>
+  </div></section>
+  <section><h2 data-i="paretoTitle">Pareto สาเหตุ NG</h2><div class="body"><canvas id="cPareto" class="chart" width="700" height="300"></canvas></div></section>
+  <section><h2 data-i="trendTitle">แนวโน้มค่าเบี่ยงเบนสูงสุด</h2><div class="body"><canvas id="cTrend" class="chart" width="700" height="300"></canvas>
+    <div class="note" data-i="trendNote">เส้นแดงคือขีดจำกัดรูปทรงที่ตั้งไว้ จุดที่ทะลุเส้น = ชิ้นที่ถูกตัดสินว่า NG จากรูปทรงฟัน</div></div></section>
+</div>
+
+<!-- ================= TAB: ตั้งค่า ================= -->
+<div class="tab" id="tab-set">
+  <section><h2 data-i="detTitle">การตรวจจับ</h2><div class="body">
+    <div class="slide"><span class="lbl" data-i="sRoiL">ขนาดวงตรวจ</span><input type="range" id="sRoi" min="20" max="49" value="40"><span class="val" id="vRoi">40%</span></div>
+    <div class="slide"><span class="lbl" data-i="sSensL">ความไวขอบ</span><input type="range" id="sSens" min="1" max="9" value="5"><span class="val" id="vSens">5</span></div>
+    <div class="slide"><span class="lbl" data-i="sHoldL">เฟรมยืนยัน</span><input type="range" id="sHold" min="1" max="8" value="3"><span class="val" id="vHold">3</span></div>
+    <div class="row" style="margin-top:10px">
+      <label class="sw"><input type="checkbox" id="cAuto" checked> <span data-i="autoC">ปรับศูนย์กลางอัตโนมัติ</span></label>
+      <label class="sw"><input type="checkbox" id="cNorm" checked> <span data-i="lowC">โหมดคอนทราสต์ต่ำ</span></label>
+    </div>
+  </div></section>
+  <section><h2 data-i="judgeTitle">เกณฑ์ตัดสิน</h2><div class="body">
+    <div class="slide"><span class="lbl" data-i="sSigL">ขีดจำกัด σ</span><input type="range" id="sSig" min="3" max="10" value="6"><span class="val" id="vSig">6</span></div>
+    <div class="slide"><span class="lbl" data-i="sShpL">ขีดจำกัดรูปทรง</span><input type="range" id="sShp" min="20" max="150" value="60"><span class="val" id="vShp">60%</span></div>
+    <div class="slide"><span class="lbl" data-i="sDefL">ตรวจชำรุด (ไม่มีมาสเตอร์)</span><input type="range" id="sDef" min="0" max="5" value="2"><span class="val" id="vDef">2</span></div>
+    <div class="row" style="margin-top:10px"><label class="sw"><input type="checkbox" id="cSound" checked> <span data-i="sound">เสียง + สั่นเตือน</span></label></div>
+    <div class="note" data-i="judgeNote">σ คือจำนวนเท่าของความผันแปรที่เรียนจากมาสเตอร์ ยิ่งน้อยยิ่งเข้ม ส่วนขีดจำกัดรูปทรงคิดเป็น % ของรัศมี ใช้กันกรณีมาสเตอร์นิ่งเกินจริง</div>
+  </div></section>
+  <section><h2 data-i="appTitle">แอป</h2><div class="body">
+    <div class="row"><button id="btnDemo" class="ghost sm" data-i="demo">โหมดเดโมเต็มจอ</button>
+      <button id="btnExport" class="ghost sm" data-i="expJob">ส่งออกรุ่นงาน</button>
+      <label class="sw"><input type="file" id="impJob" accept=".json" style="display:none"><button id="btnImport" class="ghost sm" data-i="impJob">นำเข้ารุ่นงาน</button></label></div>
+    <div class="note" data-i="appNote">ไฟล์รุ่นงานเก็บทั้งค่ามาสเตอร์และคาลิเบรต ใช้ย้ายไปเครื่องอื่นหรือสำรองไว้ได้</div>
+  </div></section>
+</div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   Gear Inspector v2
+   หลักการ: polar contour (DP บนภาพ gradient) -> โปรไฟล์รัศมี r(θ)
+            -> จำนวนฟัน = ฮาร์มอนิกเด่น
+            -> รูปทรงฟันแต่ละซี่เทียบกับมาสเตอร์ที่สอนไว้
+   ===================================================================== */
+
+/* ---------- i18n ---------- */
+const I18N = {
+ th:{tabInspect:'ตรวจ',tabTeach:'สอนงาน',tabStats:'สถิติ',tabSet:'ตั้งค่า',ready:'พร้อม',
+  rCount:'นับได้',rTarget:'ตั้งไว้',rSim:'เหมือนมาสเตอร์',start:'เริ่มกล้อง',stop:'หยุด',torch:'ไฟฉาย',
+  rec:'บันทึกผลตอนนี้',qr:'สแกน QR',teeth:'จำนวนฟัน',learn:'สอนค่าจากชิ้นงาน',logTitle:'บันทึกผลตรวจ',
+  csv:'ดาวน์โหลด CSV',ngimg:'รูป NG',clear:'ล้าง',noLog:'ยังไม่มีบันทึก',jobTitle:'รุ่นงาน',add:'เพิ่ม',
+  masterTitle:'มาสเตอร์',capOK:'เก็บมาสเตอร์ OK',capNG:'เก็บตัวอย่าง NG',clrM:'ล้างมาสเตอร์ของรุ่นนี้',
+  calTitle:'คาลิเบรตหน่วยมิลลิเมตร',odMaster:'OD มาสเตอร์',save:'บันทึก',yieldTitle:'ผลรวม',kTotal:'ตรวจ',
+  paretoTitle:'Pareto สาเหตุ NG',trendTitle:'แนวโน้มค่าเบี่ยงเบนสูงสุด (% ของความสูงฟัน)',resetCount:'รีเซ็ตตัวนับ',
+  detTitle:'การตรวจจับ',sRoiL:'ขนาดวงตรวจ',sSensL:'ความไวขอบ',sHoldL:'เฟรมยืนยัน',autoC:'ปรับศูนย์กลางอัตโนมัติ',
+  lowC:'โหมดคอนทราสต์ต่ำ',judgeTitle:'เกณฑ์ตัดสิน',sSigL:'ขีดจำกัด σ',sShpL:'ขีดจำกัดรูปทรง (%ความสูงฟัน)',
+  sDefL:'ตรวจชำรุด (ไม่มีมาสเตอร์)',sound:'เสียง + สั่นเตือน',appTitle:'แอป',demo:'โหมดเดโมเต็มจอ',
+  expJob:'ส่งออกรุ่นงาน',impJob:'นำเข้ารุ่นงาน',exitDemo:'ออกจากเดโม',
+  ttl:'ตรวจเฟืองอัตโนมัติ',
+  mNote:'เก็บชิ้นดี 5 ตัว หมุนหลายมุมและระยะต่างกันเล็กน้อย ระบบจะเรียนรูปทรงฟันเฉลี่ยและช่วงยอมรับ ตัวอย่าง NG ใส่หรือไม่ใส่ก็ได้ ใช้เป็นตัวเทียบเพิ่มเท่านั้น',
+  calNote:'วัด OD ของชิ้นมาสเตอร์ด้วยเวอร์เนียร์แล้วกรอกครั้งเดียว ค่าที่ได้ใช้คัดของผิดรุ่นและดูแนวโน้ม ความคลาดเคลื่อนจากมุมกล้องราว ±0.3–0.5 mm ยังใช้แทนเครื่องมือวัดไม่ได้',
+  judgeNote:'σ คือจำนวนเท่าของความผันแปรที่เรียนจากมาสเตอร์ ยิ่งน้อยยิ่งเข้ม ส่วนขีดจำกัดรูปทรงคิดเป็น % ของรัศมี ใช้กันกรณีมาสเตอร์นิ่งเกินจริง',
+  trendNote:'เส้นแดงคือขีดจำกัดรูปทรงที่ตั้งไว้ จุดที่ทะลุเส้น = ชิ้นที่ถูกตัดสินว่า NG จากรูปทรงฟัน',
+  appNote:'ไฟล์รุ่นงานเก็บทั้งค่ามาสเตอร์และคาลิเบรต ใช้ย้ายไปเครื่องอื่นหรือสำรองไว้ได้',
+  msgAim:'วางชิ้นงานให้อยู่ในวงกลม • แตะที่ภาพเพื่อย้ายจุดศูนย์กลาง',
+  msgNoPart:'ยังจับขอบชิ้นงานไม่ได้ — วางบนพื้นสีตัดกัน แล้วปรับขนาดวงตรวจ',
+  msgMeasuring:'กำลังวัด…',countBad:'จำนวนฟันไม่ตรง',shapeBad:'รูปทรงฟันผิด',toothMiss:'ฟันหาย/แตก',
+  toothWear:'ฟันสึก/สั้น',nearNG:'ใกล้เคียงตัวอย่าง NG',noMaster:'ยังไม่มีมาสเตอร์ ใช้เกณฑ์ตรวจชำรุดพื้นฐาน'},
+ en:{tabInspect:'Inspect',tabTeach:'Teach',tabStats:'Stats',tabSet:'Setup',ready:'READY',
+  rCount:'COUNT',rTarget:'TARGET',rSim:'MASTER MATCH',start:'Start camera',stop:'Stop',torch:'Torch',
+  rec:'Record now',qr:'Scan QR',teeth:'Teeth',learn:'Teach from part',logTitle:'Inspection log',
+  csv:'Download CSV',ngimg:'NG images',clear:'Clear',noLog:'No records yet',jobTitle:'Job',add:'Add',
+  masterTitle:'Master',capOK:'Capture OK master',capNG:'Capture NG sample',clrM:'Clear masters',
+  calTitle:'Millimetre calibration',odMaster:'Master OD',save:'Save',yieldTitle:'Summary',kTotal:'Checked',
+  paretoTitle:'NG Pareto',trendTitle:'Max deviation (% of tooth height)',resetCount:'Reset counters',
+  detTitle:'Detection',sRoiL:'ROI size',sSensL:'Edge sensitivity',sHoldL:'Confirm frames',autoC:'Auto centre',
+  lowC:'Low-contrast mode',judgeTitle:'Judgement',sSigL:'σ limit',sShpL:'Shape limit (% tooth height)',
+  sDefL:'Defect check (no master)',sound:'Sound + vibration',appTitle:'App',demo:'Full-screen demo',
+  expJob:'Export jobs',impJob:'Import jobs',exitDemo:'Exit demo',
+  ttl:'Automatic gear inspection',
+  mNote:'Capture 5 good parts at slightly different angles and distances. The app learns the average tooth shape and its natural spread. NG samples are optional and only used as an extra reference.',
+  calNote:'Measure the master OD once with a vernier and enter it here. Use the millimetre readout for sorting and trends — camera angle adds roughly ±0.3–0.5 mm, so it does not replace a gauge.',
+  judgeNote:'σ is how many times the variation learned from the masters is allowed. Lower is stricter. The shape limit is a percentage of radius and guards against masters that look unrealistically consistent.',
+  trendNote:'The red line is the shape limit. Points above it were judged NG on tooth shape.',
+  appNote:'The job file holds masters and calibration — use it to back up or move settings to another phone.',
+  msgAim:'Place the part inside the circle • tap image to move centre',
+  msgNoPart:'Cannot find the part edge — use a contrasting background and adjust ROI',
+  msgMeasuring:'Measuring…',countBad:'Tooth count mismatch',shapeBad:'Tooth shape out of tolerance',
+  toothMiss:'Missing/broken tooth',toothWear:'Worn/short tooth',nearNG:'Close to NG sample',
+  noMaster:'No master taught — using basic defect check'},
+ ja:{tabInspect:'検査',tabTeach:'ティーチ',tabStats:'統計',tabSet:'設定',ready:'準備完了',
+  rCount:'計数',rTarget:'設定値',rSim:'マスタ一致度',start:'カメラ開始',stop:'停止',torch:'ライト',
+  rec:'今の結果を記録',qr:'QR読取',teeth:'歯数',learn:'ワークから設定',logTitle:'検査記録',
+  csv:'CSVを保存',ngimg:'NG画像',clear:'消去',noLog:'記録なし',jobTitle:'機種',add:'追加',
+  masterTitle:'マスタ',capOK:'OKマスタ登録',capNG:'NGサンプル登録',clrM:'マスタ消去',
+  calTitle:'ミリ換算校正',odMaster:'マスタ外径',save:'保存',yieldTitle:'集計',kTotal:'検査数',
+  paretoTitle:'NG要因パレート',trendTitle:'最大偏差の推移(歯たけ比)',resetCount:'カウンタ初期化',
+  detTitle:'検出',sRoiL:'検査円の大きさ',sSensL:'エッジ感度',sHoldL:'確定フレーム数',autoC:'自動芯出し',
+  lowC:'低コントラストモード',judgeTitle:'判定条件',sSigL:'σ限界',sShpL:'形状限界(歯たけ%)',
+  sDefL:'欠損検査(マスタ無し)',sound:'音+振動',appTitle:'アプリ',demo:'全画面デモ',
+  expJob:'機種を書出',impJob:'機種を読込',exitDemo:'デモ終了',
+  ttl:'歯車自動検査',
+  mNote:'良品5個を角度と距離を少し変えて登録してください。平均歯形とばらつきを学習します。NGサンプルは任意で、参考比較のみに使用します。',
+  calNote:'マスタの外径をノギスで一度測り入力してください。ミリ表示は選別と傾向確認用です。カメラ角度により±0.3〜0.5mm程度の誤差があり、測定器の代替にはなりません。',
+  judgeNote:'σはマスタから学習したばらつきの許容倍数で、小さいほど厳しくなります。形状限界は半径に対する％で、マスタのばらつきが小さすぎる場合の保険です。',
+  trendNote:'赤線は形状限界です。線を超えた点は歯形でNG判定された品物です。',
+  appNote:'機種ファイルにはマスタと校正値が含まれます。バックアップや他端末への移行に使えます。',
+  msgAim:'ワークを円の中に置いてください • 画面タップで中心移動',
+  msgNoPart:'外形を検出できません — 背景のコントラストを上げて検査円を調整してください',
+  msgMeasuring:'測定中…',countBad:'歯数不一致',shapeBad:'歯形が公差外',toothMiss:'歯欠け',
+  toothWear:'歯の摩耗',nearNG:'NGサンプルに近い',noMaster:'マスタ未登録 — 簡易欠損検査で判定'}
+};
+let lang='th';
+const T = k => (I18N[lang][k] || I18N.th[k] || k);
+function applyLang(){
+  document.querySelectorAll('[data-i]').forEach(e => e.textContent = T(e.dataset.i));
+  document.getElementById('ttl').textContent = T('ttl');
+  renderLog(); renderJobs(); renderStats();
+}
+
+/* ---------- storage ---------- */
+const mem={};
+const store={
+  async get(k){ try{ if(window.storage){const r=await window.storage.get(k); return r?JSON.parse(r.value):null;} }catch(e){} return (k in mem)?mem[k]:null; },
+  async set(k,v){ try{ if(window.storage){ await window.storage.set(k, JSON.stringify(v)); return; } }catch(e){} mem[k]=v; }
+};
+
+/* ---------- DOM ---------- */
+const $ = id => document.getElementById(id);
+const view=$('view'), vctx=view.getContext('2d',{willReadFrequently:true});
+const badge=$('badge'), hint=$('hint'), stage=$('stage');
+
+/* ---------- state ---------- */
+const PW=384, PH=512, NPX=PW*PH, NA=512, M=24;
+let video=null, stream=null, track=null, running=false;
+let roiFrac=.40, sens=5, holdN=3, dsens=2, sigLim=6, shpFrac=.60;
+let cx=PW/2, cy=PH/2, autoCenter=true, soundOn=true, lowC=true;
+let target=20, last=null, history=[], lockedKey=null, lastAnalyze=0, INTERVAL=180;
+let jobs=[], curJob=null, logs=[], counters={total:0,ok:0,ng:0};
+
+/* ---------- buffers ---------- */
+const gray=new Float32Array(NPX), tmp=new Float32Array(NPX), grad=new Float32Array(NPX), boxA=new Float32Array(NPX), boxB=new Float32Array(NPX);
+const COS=new Float32Array(NA), SIN=new Float32Array(NA);
+for(let i=0;i<NA;i++){ const a=2*Math.PI*i/NA; COS[i]=Math.cos(a); SIN[i]=Math.sin(a); }
+let P=null,S=null,dpA=null,dpB=null,back=null,curNR=0;
+const prof=new Float32Array(NA), profS=new Float32Array(NA), baseA=new Float32Array(NA), dev=new Float32Array(NA);
+
+/* =====================================================================
+   ประมวลผลภาพ
+   ===================================================================== */
+function toGray(img){ const d=img.data; for(let p=0,i=0;p<NPX;p++,i+=4) gray[p]=d[i]*.299+d[i+1]*.587+d[i+2]*.114; }
+function blur121(){
+  for(let y=0;y<PH;y++){ const o=y*PW; tmp[o]=gray[o]; tmp[o+PW-1]=gray[o+PW-1];
+    for(let x=1;x<PW-1;x++) tmp[o+x]=(gray[o+x-1]+2*gray[o+x]+gray[o+x+1])*.25; }
+  for(let x=0;x<PW;x++){ gray[x]=tmp[x]; gray[(PH-1)*PW+x]=tmp[(PH-1)*PW+x];
+    for(let y=1;y<PH-1;y++){ const p=y*PW+x; gray[p]=(tmp[p-PW]+2*tmp[p]+tmp[p+PW])*.25; } }
+}
+function gradient(){
+  grad.fill(0);
+  for(let y=1;y<PH-1;y++){ const o=y*PW;
+    for(let x=1;x<PW-1;x++){ const p=o+x; grad[p]=Math.abs(gray[p+1]-gray[p-1])+Math.abs(gray[p+PW]-gray[p-PW]); } }
+}
+/* หารด้วยความแรงขอบเฉลี่ยรอบๆ: ขอบจางในพื้นที่เรียบจะเด่นขึ้น
+   ส่วนบริเวณลายพร่า (ถุงพลาสติก ตัวหนังสือ ไม้บรรทัด) จะถูกกด */
+function localNorm(w){
+  const h=w>>1; let sum=0;
+  for(let p=0;p<NPX;p++) sum+=grad[p];
+  const floor=.9*sum/NPX+1e-6;
+  for(let y=0;y<PH;y++){ const o=y*PW; let s=0,c=0;
+    for(let x=0;x<=h&&x<PW;x++){ s+=grad[o+x]; c++; }
+    for(let x=0;x<PW;x++){
+      boxA[o+x]=s/c;
+      const ad=x+h+1, sb=x-h;
+      if(ad<PW){ s+=grad[o+ad]; c++; }
+      if(sb>=0){ s-=grad[o+sb]; c--; }
+    }
+  }
+  for(let x=0;x<PW;x++){ let s=0,c=0;
+    for(let y=0;y<=h&&y<PH;y++){ s+=boxA[y*PW+x]; c++; }
+    for(let y=0;y<PH;y++){
+      boxB[y*PW+x]=s/c;
+      const ad=y+h+1, sb=y-h;
+      if(ad<PH){ s+=boxA[ad*PW+x]; c++; }
+      if(sb>=0){ s-=boxA[sb*PW+x]; c--; }
+    }
+  }
+  for(let p=0;p<NPX;p++) grad[p]=grad[p]/(boxB[p]+floor);
+}
+function sampleG(x,y){
+  if(x<0||y<0||x>=PW-1||y>=PH-1) return 0;
+  const x0=x|0,y0=y|0,fx=x-x0,fy=y-y0,p=y0*PW+x0;
+  return grad[p]*(1-fx)*(1-fy)+grad[p+1]*fx*(1-fy)+grad[p+PW]*(1-fx)*fy+grad[p+PW+1]*fx*fy;
+}
+
+/* =====================================================================
+   หาเส้นขอบด้วย dynamic programming ในระบบพิกัดเชิงขั้ว
+   ===================================================================== */
+function polarDP(R, inner, jumpMax, rbias){
+  const r0=R*inner, NR=Math.max(12, Math.round(R-r0));
+  if(NR!==curNR){ P=new Float32Array(NR*NA); S=new Float32Array(NR*NA);
+    dpA=new Float32Array(NR); dpB=new Float32Array(NR); back=new Int16Array(NA*NR); curNR=NR; }
+  for(let ri=0;ri<NR;ri++){ const r=r0+ri,o=ri*NA;
+    for(let j=0;j<NA;j++) P[o+j]=sampleG(cx+COS[j]*r, cy+SIN[j]*r); }
+  for(let j=0;j<NA;j++){
+    let mx=1e-6;
+    for(let ri=0;ri<NR;ri++){ const v=P[ri*NA+j]; if(v>mx) mx=v; }
+    for(let ri=0;ri<NR;ri++) S[ri*NA+j]=P[ri*NA+j]/mx*Math.pow((r0+ri)/R, rbias);
+  }
+  const JP=.06;
+  function sweep(fix0){
+    if(fix0<0){ for(let ri=0;ri<NR;ri++) dpA[ri]=S[ri*NA]; } else { dpA.fill(-1e18); dpA[fix0]=S[fix0*NA]; }
+    for(let j=1;j<NA;j++){ const o=j*NR;
+      for(let ri=0;ri<NR;ri++){
+        let best=-1e18,arg=ri;
+        const lo=Math.max(0,ri-jumpMax), hi=Math.min(NR-1,ri+jumpMax);
+        for(let k=lo;k<=hi;k++){ const v=dpA[k]-JP*Math.abs(k-ri); if(v>best){best=v;arg=k;} }
+        dpB[ri]=S[ri*NA+j]+best; back[o+ri]=arg;
+      }
+      dpA.set(dpB);
+    }
+    let end=0,b=-1e18;
+    if(fix0<0){ for(let ri=0;ri<NR;ri++) if(dpA[ri]>b){b=dpA[ri];end=ri;} }
+    else { for(let ri=Math.max(0,fix0-jumpMax);ri<=Math.min(NR-1,fix0+jumpMax);ri++) if(dpA[ri]>b){b=dpA[ri];end=ri;} }
+    const path=new Int16Array(NA); path[NA-1]=end;
+    for(let j=NA-1;j>0;j--) path[j-1]=back[j*NR+path[j]];
+    return path;
+  }
+  const p1=sweep(-1), p2=sweep(p1[0]);
+  for(let j=0;j<NA;j++) prof[j]=r0+p2[j];
+}
+
+/* =====================================================================
+   วิเคราะห์โปรไฟล์: จำนวนฟัน + รูปทรงฟันแต่ละซี่
+   ===================================================================== */
+function medfilt3(s,d){ for(let i=0;i<NA;i++){ const a=s[(i-1+NA)%NA],b=s[i],c=s[(i+1)%NA];
+  d[i]=Math.max(Math.min(a,b),Math.min(Math.max(a,b),c)); } }
+function circMean(s,d,w){ const h=w>>1; let sum=0;
+  for(let i=-h;i<=h;i++) sum+=s[(i+NA)%NA];
+  const inv=1/(2*h+1);
+  for(let i=0;i<NA;i++){ d[i]=sum*inv; sum+=s[(i+h+1)%NA]-s[(i-h+NA)%NA]; } }
+function pct(a,q){ const b=Array.from(a).sort((x,y)=>x-y); return b[Math.min(b.length-1,Math.max(0,Math.round(q*(b.length-1))))]; }
+function interpProf(pos){ const f=((pos%NA)+NA)%NA, i0=Math.floor(f), fr=f-i0;
+  return profS[i0%NA]*(1-fr)+profS[(i0+1)%NA]*fr; }
+/* ใช้ค่าที่หักฐานแล้ว เพื่อไม่ให้ภาพเอียง/เยื้องศูนย์ไปปนกับรูปทรงฟัน */
+function interpDev(pos){ const f=((pos%NA)+NA)%NA, i0=Math.floor(f), fr=f-i0;
+  return dev[i0%NA]*(1-fr)+dev[(i0+1)%NA]*fr; }
+
+function measure(){
+  medfilt3(prof, profS);
+  let mean=0; for(let i=0;i<NA;i++) mean+=profS[i]; mean/=NA;
+  if(mean<8) return null;
+  const kMin=5, kMax=Math.min(90, Math.floor(Math.PI*mean/2.6));
+  if(kMax<=kMin) return null;
+  let kBest=kMin, magBest=-1; const mags=[];
+  for(let k=kMin;k<=kMax;k++){
+    const a=2*Math.PI*k/NA, wc=Math.cos(a), ws=Math.sin(a);
+    let zr=1,zi=0,re=0,im=0;
+    for(let j=0;j<NA;j++){ const d=profS[j]-mean; re+=d*zr; im+=d*zi;
+      const nr=zr*wc+zi*ws; zi=zi*wc-zr*ws; zr=nr; }
+    const m=Math.hypot(re,im); mags.push(m);
+    if(m>magBest){ magBest=m; kBest=k; }
+  }
+  const sharp=magBest/(pct(mags,.5)||1e-6);
+  let w=Math.max(3,Math.round(1.6*NA/kBest)); if(w%2===0) w++;
+  circMean(profS, baseA, w);
+  for(let i=0;i<NA;i++) dev[i]=profS[i]-baseA[i];
+  const amp=pct(dev,.97)-pct(dev,.03);
+  if(amp/mean<.012) return {none:true};
+
+  // จัดเฟสให้ยอดฟันตรงกับตำแหน่งอ้างอิง
+  const pitch=NA/kBest;
+  let off=0, bs=-1e18;
+  for(let o=0;o<Math.round(pitch);o++){ let s=0;
+    for(let n=0;n<kBest;n++) s+=dev[Math.round(o+n*pitch)%NA];
+    if(s>bs){ bs=s; off=o; } }
+  const half=Math.max(1,Math.round(.35*pitch));
+  const hs=[], tipIdx=[], tipR=[], rootR=[];
+  for(let n=0;n<kBest;n++){
+    const c=Math.round(off+n*pitch);
+    let h=-1e18, bi=c%NA;
+    for(let d=-half;d<=half;d++){ const i=((c+d)%NA+NA)%NA; if(dev[i]>h){ h=dev[i]; bi=i; } }
+    hs.push(h); tipIdx.push(bi); tipR.push(profS[bi]);
+    // ก้นร่องระหว่างฟัน
+    let mn=1e18; const c2=Math.round(off+(n+.5)*pitch);
+    for(let d=-half;d<=half;d++){ const i=((c2+d)%NA+NA)%NA; if(profS[i]<mn) mn=profS[i]; }
+    rootR.push(mn);
+  }
+  /* รูปทรงฟันแต่ละซี่
+     - กว้าง: ยืดตามระยะพิทช์จริงของฟันซี่นั้น (ชดเชยมุมกล้องที่ทำให้ด้านไกลถูกบีบ)
+     - สูง: หารด้วยรัศมีฐานเฉพาะจุด (ชดเชยการเอียง/เยื้องศูนย์)
+     ทำให้เทียบกับมาสเตอร์ได้แม้ถือมือถือคนละมุม */
+  const shapes=new Float32Array(kBest*M);
+  for(let n=0;n<kBest;n++){
+    const tp=tipIdx[n];
+    let pv=tipIdx[(n-1+kBest)%kBest], nx=tipIdx[(n+1)%kBest];
+    let wl=((tp-pv)%NA+NA)%NA, wr=((nx-tp)%NA+NA)%NA;
+    if(wl<pitch*.5||wl>pitch*1.6) wl=pitch;
+    if(wr<pitch*.5||wr>pitch*1.6) wr=pitch;
+    const bLocal=Math.max(1,baseA[tp]);
+    for(let m=0;m<M;m++){
+      const f=m/M-.5;
+      const pos=tp+(f<0 ? f*wl : f*wr);
+      shapes[n*M+m]=interpDev(pos)/bLocal;
+    }
+  }
+  return {none:false, k:kBest, mean, amp, sharp, off, pitch, hs, tipIdx, tipR, rootR, shapes,
+          tipMed:pct(tipR,.5), rootMed:pct(rootR,.5), runout:Math.max(...tipR)-Math.min(...tipR)};
+}
+
+/* ---------- โมเดลมาสเตอร์ ---------- */
+function buildModel(samples){
+  if(!samples || !samples.length) return null;
+  const kc={}; samples.forEach(s=>kc[s.k]=(kc[s.k]||0)+1);
+  const k=+Object.keys(kc).sort((a,b)=>kc[b]-kc[a])[0];
+  const use=samples.filter(s=>s.k===k);
+  if(!use.length) return null;
+  const meanV=new Float64Array(M), stdV=new Float64Array(M);
+  let cnt=0;
+  for(const s of use) for(let n=0;n<k;n++){ for(let m=0;m<M;m++) meanV[m]+=s.shapes[n*M+m]; cnt++; }
+  for(let m=0;m<M;m++) meanV[m]/=cnt;
+  for(const s of use) for(let n=0;n<k;n++) for(let m=0;m<M;m++){ const d=s.shapes[n*M+m]-meanV[m]; stdV[m]+=d*d; }
+  for(let m=0;m<M;m++) stdV[m]=Math.sqrt(stdV[m]/Math.max(1,cnt-1));
+  const tipMed=use.reduce((a,s)=>a+s.tipMed/s.mean,0)/use.length;
+  const amp=Math.max(...meanV)-Math.min(...meanV);       // ความสูงฟันอ้างอิง (สัดส่วนของรัศมี)
+  return {k, n:use.length, mean:Array.from(meanV), std:Array.from(stdV), tipNorm:tipMed, amp};
+}
+function scoreTeeth(res, model){
+  const out={teeth:[], meanDev:0, maxDev:0, maxAt:0, bad:[]};
+  const amp=model.amp||.05;
+  const FLOOR=.004*amp/.05;                 // กันมาสเตอร์ที่นิ่งเกินจริง
+  const LIM=shpFrac*amp;                    // ขีดจำกัดรูปทรง = % ของความสูงฟัน
+  let sum=0;
+  for(let n=0;n<res.k;n++){
+    let mx=0, mz=0, sd=0;
+    for(let m=0;m<M;m++){
+      const d=Math.abs(res.shapes[n*M+m]-model.mean[m]);
+      sd+=d; if(d>mx) mx=d;
+      const z=d/Math.max(model.std[m], FLOOR); if(z>mz) mz=z;
+    }
+    sd/=M; sum+=sd;
+    const bad=(mz>sigLim)||(mx>LIM);
+    out.teeth.push({n, dev:sd, max:mx, z:mz, bad, idx:res.tipIdx[n], r:res.tipR[n]});
+    if(mx>out.maxDev){ out.maxDev=mx; out.maxAt=res.tipIdx[n]; }
+    if(bad) out.bad.push(n);
+  }
+  out.meanDev=sum/res.k;
+  out.rel=out.maxDev/amp;                   // ค่าเบี่ยงเบนสูงสุด เทียบความสูงฟัน
+  out.sim=Math.max(0,Math.min(100,100*(1-out.meanDev/amp)));
+  return out;
+}
+function distToModel(res, model){
+  let s=0;
+  for(let n=0;n<res.k;n++) for(let m=0;m<M;m++) s+=Math.abs(res.shapes[n*M+m]-model.mean[m]);
+  return s/(res.k*M);
+}
+
+/* =====================================================================
+   รอบการทำงาน
+   ===================================================================== */
+function analyze(){
+  toGray(vctx.getImageData(0,0,PW,PH)); blur121(); blur121(); gradient();
+  if(lowC) localNorm(33);
+  const R=roiFrac*Math.min(PW,PH);
+  const jump=[2,2,3,3,4,4,5,6,7][sens-1];
+  const c0x=cx, c0y=cy;
+  for(let it=0;it<2;it++){
+    polarDP(R,.5,jump,1.0);
+    if(autoCenter){
+      let sx=0,sy=0;
+      for(let j=0;j<NA;j++){ sx+=prof[j]*COS[j]; sy+=prof[j]*SIN[j]; }
+      let nx=cx+1.5*sx/NA, ny=cy+1.5*sy/NA;
+      const dx=nx-c0x, dy=ny-c0y, dd=Math.hypot(dx,dy), lim=.35*R;
+      if(dd>lim){ nx=c0x+dx/dd*lim; ny=c0y+dy/dd*lim; }
+      cx=Math.max(R*.4,Math.min(PW-R*.4,nx)); cy=Math.max(R*.4,Math.min(PH-R*.4,ny));
+    }
+  }
+  const res=measure();
+  if(!res||res.none){ last=res?{none:true}:null; judge(); return; }
+
+  const model=curJob&&curJob.model;
+  const reasons=[], marks=[];
+  if(res.k!==target) reasons.push(T('countBad'));
+  if(model && model.k===res.k){
+    const sc=scoreTeeth(res, model);
+    res.score=sc;
+    res.sim=sc.sim;
+    if(sc.bad.length){
+      reasons.push(T('shapeBad'));
+      for(const n of sc.bad) marks.push({idx:sc.teeth[n].idx, r:sc.teeth[n].r,
+        type:(sc.teeth[n].max>1.3*shpFrac*(model.amp||.05) ? T('toothMiss') : T('toothWear'))});
+    }
+    if(curJob.ngModel && curJob.ngModel.k===res.k){
+      const dOK=distToModel(res,model), dNG=distToModel(res,curJob.ngModel);
+      if(dNG<dOK*.9){ reasons.push(T('nearNG')); res.nearNG=true; }
+    }
+  } else {
+    // ไม่มีมาสเตอร์: เทียบฟันกับค่ากลางของตัวเอง
+    res.sim=null;
+    if(dsens>0){
+      const medH=pct(res.hs,.5)||1e-6;
+      const MISS=[.14,.22,.30,.38,.46][dsens-1], WEAR=[.32,.42,.52,.62,.70][dsens-1];
+      for(let n=0;n<res.k;n++){
+        if(res.hs[n]<MISS*medH) marks.push({idx:res.tipIdx[n], r:res.tipR[n], type:T('toothMiss')});
+        else if(res.hs[n]<WEAR*medH) marks.push({idx:res.tipIdx[n], r:res.tipR[n], type:T('toothWear')});
+      }
+      if(marks.length) reasons.push(T('shapeBad'));
+    }
+  }
+  res.reasons=reasons; res.marks=marks;
+  // แปลงเป็นมิลลิเมตร
+  if(curJob&&curJob.odmm&&curJob.model){
+    const scale=curJob.odmm/(2*curJob.model.tipNorm*res.mean);
+    res.mm={od:2*res.tipMed*scale, root:2*res.rootMed*scale,
+            h:(res.tipMed-res.rootMed)*scale, runout:res.runout*scale};
+  }
+  last=res; judge();
+}
+
+function judge(){
+  const dC=$('dCount'), dS=$('dSim');
+  if(!last||last.none){
+    history.length=0; lockedKey=null;
+    badge.className='badge'; badge.textContent=T('ready');
+    dC.textContent='–'; dC.className='big'; dS.textContent='–';
+    $('mmbar').style.display='none';
+    hint.textContent=T('msgNoPart'); return;
+  }
+  const status=last.reasons.length?'NG':'OK';
+  dC.textContent=last.k; dC.className='big '+(status==='OK'?'ok':'ng');
+  dS.textContent = last.sim==null ? '–' : last.sim.toFixed(1)+'%';
+  if(last.mm){
+    $('mmbar').style.display='flex';
+    $('mmbar').innerHTML=`OD <b>${last.mm.od.toFixed(2)}</b> mm &nbsp; ROOT <b>${last.mm.root.toFixed(2)}</b> &nbsp; H <b>${last.mm.h.toFixed(2)}</b> &nbsp; RUNOUT <b>${last.mm.runout.toFixed(2)}</b>`;
+  } else $('mmbar').style.display='none';
+
+  history.push(last.k+'|'+status+'|'+last.marks.length);
+  if(history.length>12) history.shift();
+  let stable=history.length>=holdN;
+  if(stable){ const k=history[history.length-1];
+    for(let i=history.length-holdN;i<history.length;i++) if(history[i]!==k) stable=false; }
+  const info=[`${last.k} / ${target}`];
+  if(last.sim!=null) info.push(`${T('rSim')} ${last.sim.toFixed(1)}%`);
+  if(last.reasons.length) info.push(last.reasons.join(', '));
+  if(last.marks.length) info.push(last.marks.map(m=>`${m.type} ${Math.round(m.idx/NA*360)}°`).join(', '));
+  if(!curJob||!curJob.model) info.push(T('noMaster'));
+  hint.textContent=info.join(' • ');
+
+  if(!stable){ badge.className='badge'; badge.textContent=T('msgMeasuring'); return; }
+  badge.className='badge '+(status==='OK'?'ok':'ng'); badge.textContent=status;
+  const key=history[history.length-1];
+  if(key!==lockedKey){
+    lockedKey=key;
+    if(status==='NG') alarm();
+    record(status);
+  }
+}
+
+let actx=null;
+function alarm(){
+  if(soundOn){
+    try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      const t=actx.currentTime;
+      for(let i=0;i<2;i++){ const o=actx.createOscillator(), g=actx.createGain();
+        o.type='square'; o.frequency.value=880;
+        g.gain.setValueAtTime(.0001,t+i*.22); g.gain.exponentialRampToValueAtTime(.25,t+i*.22+.01);
+        g.gain.exponentialRampToValueAtTime(.0001,t+i*.22+.16);
+        o.connect(g); g.connect(actx.destination); o.start(t+i*.22); o.stop(t+i*.22+.18); }
+    }catch(e){}
+    if(navigator.vibrate) navigator.vibrate([120,60,120]);
+  }
+  stage.classList.remove('flash'); void stage.offsetWidth; stage.classList.add('flash');
+}
+
+/* ---------- overlay ---------- */
+function drawOverlay(){
+  const R=roiFrac*Math.min(PW,PH);
+  vctx.save();
+  vctx.strokeStyle='rgba(226,101,13,.7)'; vctx.lineWidth=1.5; vctx.setLineDash([7,6]);
+  vctx.beginPath(); vctx.arc(cx,cy,R,0,7); vctx.stroke(); vctx.setLineDash([]);
+  if(last&&!last.none){
+    const ng=last.reasons&&last.reasons.length;
+    vctx.beginPath();
+    for(let j=0;j<NA;j++){ const x=cx+prof[j]*COS[j], y=cy+prof[j]*SIN[j]; j?vctx.lineTo(x,y):vctx.moveTo(x,y); }
+    vctx.closePath();
+    vctx.strokeStyle=ng?'rgba(255,90,80,.95)':'rgba(74,222,128,.95)'; vctx.lineWidth=2; vctx.stroke();
+    vctx.fillStyle=ng?'rgba(255,190,180,.9)':'rgba(190,255,215,.9)';
+    for(const i of last.tipIdx){ const r=prof[i]+7; vctx.beginPath(); vctx.arc(cx+r*COS[i], cy+r*SIN[i],2.1,0,7); vctx.fill(); }
+    vctx.strokeStyle='rgba(226,101,13,.9)'; vctx.lineWidth=1.2;
+    vctx.beginPath(); vctx.moveTo(cx-9,cy); vctx.lineTo(cx+9,cy); vctx.moveTo(cx,cy-9); vctx.lineTo(cx,cy+9); vctx.stroke();
+    if(last.marks) for(const m of last.marks){
+      const r=m.r+6, x=cx+r*COS[m.idx%NA], y=cy+r*SIN[m.idx%NA], rad=Math.max(14,last.mean*.11);
+      vctx.strokeStyle='#FF3B30'; vctx.lineWidth=2.5;
+      vctx.beginPath(); vctx.arc(x,y,rad,0,7); vctx.stroke();
+      vctx.fillStyle='#FF3B30'; vctx.font='bold 11px '+getComputedStyle(document.body).fontFamily;
+      vctx.fillText(m.type, x-rad, y-rad-4);
+    }
+  }
+  vctx.restore();
+}
+function loop(ts){
+  if(!running) return;
+  if(video&&video.readyState>=2){
+    const vw=video.videoWidth, vh=video.videoHeight, s=Math.max(PW/vw,PH/vh), dw=vw*s, dh=vh*s;
+    vctx.drawImage(video,(PW-dw)/2,(PH-dh)/2,dw,dh);
+    if(ts-lastAnalyze>INTERVAL){ lastAnalyze=ts; const t0=performance.now();
+      try{ analyze(); }catch(e){ console.error(e); }
+      INTERVAL=Math.max(150,Math.min(700,(performance.now()-t0)*2.2)); }
+    drawOverlay();
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ---------- กล้อง ---------- */
+async function start(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ warn('This browser cannot open the camera (needs https).'); return; }
+  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:960}},audio:false}); }
+  catch(e){ warn('Camera error: '+e.name+' — ต้องเปิดหน้านี้ผ่าน https หรือ localhost'); return; }
+  video=document.createElement('video'); video.playsInline=true; video.muted=true; video.srcObject=stream;
+  await video.play(); track=stream.getVideoTracks()[0];
+  try{ const c=track.getCapabilities?track.getCapabilities():{}; if(c.torch) $('btnTorch').style.display=''; }catch(e){}
+  running=true; $('btnStart').disabled=true; $('btnStop').disabled=false;
+  hint.textContent=T('msgAim'); requestAnimationFrame(loop);
+}
+function stopCam(){
+  running=false; if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=null; video=null; track=null;
+  $('btnStart').disabled=false; $('btnStop').disabled=true; $('btnTorch').style.display='none';
+  badge.className='badge'; badge.textContent=T('ready'); history.length=0; lockedKey=null;
+}
+let torchOn=false;
+$('btnTorch').onclick=async()=>{ if(!track) return; torchOn=!torchOn;
+  try{ await track.applyConstraints({advanced:[{torch:torchOn}]}); }catch(e){} };
+function warn(m){ const w=$('secWarn'); w.style.display=''; w.textContent=m; }
+
+/* =====================================================================
+   รุ่นงาน + มาสเตอร์
+   ===================================================================== */
+function saveJobs(){ store.set('jobs2', jobs); }
+function renderJobs(){
+  const sel=$('jobSel');
+  sel.innerHTML='<option value="">— '+T('jobTitle')+' —</option>'+
+    jobs.map(j=>`<option value="${j.name}">${j.name} · ${j.teeth}T${j.model?' ★':''}</option>`).join('');
+  if(curJob) sel.value=curJob.name;
+  $('jobList').innerHTML = jobs.length ? jobs.map((j,i)=>
+    `<span class="chip${curJob&&curJob.name===j.name?' on':''}" data-i2="${i}">${j.name} <b>${j.teeth}</b>${j.model?' ★'+j.model.n:''} <button class="sm ghost" data-del="${i}" style="border:0;padding:1px 5px">✕</button></span>`).join('')
+    : '<span class="empty">—</span>';
+  $('jobList').querySelectorAll('.chip').forEach(c=>c.onclick=e=>{
+    if(e.target.dataset.del!==undefined) return; selectJob(jobs[+c.dataset.i2].name); });
+  $('jobList').querySelectorAll('[data-del]').forEach(b=>b.onclick=e=>{
+    e.stopPropagation(); const j=jobs[+b.dataset.del];
+    if(curJob&&curJob.name===j.name) curJob=null;
+    jobs.splice(+b.dataset.del,1); saveJobs(); renderJobs(); renderMaster(); });
+  renderMaster();
+}
+function selectJob(name){
+  curJob=jobs.find(j=>j.name===name)||null;
+  if(curJob){ setTarget(curJob.teeth); $('odmm').value=curJob.odmm||''; }
+  history.length=0; lockedKey=null;
+  renderJobs();
+}
+function renderMaster(){
+  const ok=curJob&&curJob.samples?curJob.samples.length:0;
+  const ng=curJob&&curJob.ngSamples?curJob.ngSamples.length:0;
+  $('dotsOK').innerHTML=[0,1,2,3,4].map(i=>`<span class="dot${i<ok?' f':''}">${i+1}</span>`).join('');
+  $('dotsNG').innerHTML=[0,1,2].map(i=>`<span class="dot${i<ng?' n':''}">${i+1}</span>`).join('');
+  const m=curJob&&curJob.model;
+  $('mInfo').textContent = !curJob ? '—'
+    : (m ? `${curJob.name}: ${m.k} ${T('teeth')} · ${T('masterTitle')} ${m.n} · σ ${(m.std.reduce((a,b)=>a+b,0)/M*100).toFixed(2)}%`
+         : T('noMaster'));
+}
+function captureMaster(kind){
+  if(!curJob){ alert(T('jobTitle')); return; }
+  if(!last||last.none){ return; }
+  const s={k:last.k, mean:last.mean, tipMed:last.tipMed, shapes:Array.from(last.shapes)};
+  if(kind==='ok'){
+    curJob.samples=curJob.samples||[]; if(curJob.samples.length>=5) curJob.samples.shift();
+    curJob.samples.push(s); curJob.model=buildModel(curJob.samples);
+    if(curJob.model) { curJob.teeth=curJob.model.k; setTarget(curJob.model.k); }
+  } else {
+    curJob.ngSamples=curJob.ngSamples||[]; if(curJob.ngSamples.length>=3) curJob.ngSamples.shift();
+    curJob.ngSamples.push(s); curJob.ngModel=buildModel(curJob.ngSamples);
+  }
+  saveJobs(); renderJobs(); history.length=0; lockedKey=null;
+}
+$('capOK').onclick=()=>captureMaster('ok');
+$('capNG').onclick=()=>captureMaster('ng');
+$('clrM').onclick=()=>{ if(!curJob) return;
+  if(confirm(T('clrM')+'?')){ delete curJob.samples; delete curJob.model; delete curJob.ngSamples; delete curJob.ngModel;
+    saveJobs(); renderJobs(); } };
+$('jAdd').onclick=()=>{
+  const n=$('jName').value.trim(), t=parseInt($('jTeeth').value,10);
+  if(!n||!(t>=4&&t<=120)){ alert('Part No. + 4–120'); return; }
+  const ex=jobs.find(j=>j.name===n);
+  if(ex) ex.teeth=t; else jobs.push({name:n, teeth:t});
+  $('jName').value=''; $('jTeeth').value=''; saveJobs(); selectJob(n);
+};
+$('jobSel').onchange=e=>selectJob(e.target.value);
+$('odSave').onclick=()=>{ if(!curJob){ alert(T('jobTitle')); return; }
+  const v=parseFloat($('odmm').value); if(!(v>0)){ alert('mm'); return; }
+  curJob.odmm=v; saveJobs(); renderJobs(); };
+
+/* ---------- QR ---------- */
+$('btnQR').onclick=async()=>{
+  if(!('BarcodeDetector' in window)){ alert('BarcodeDetector not supported on this device'); return; }
+  try{
+    const bd=new window.BarcodeDetector({formats:['qr_code','code_128','code_39','ean_13']});
+    const codes=await bd.detect(view);
+    if(!codes.length){ hint.textContent='QR: —'; return; }
+    const v=codes[0].rawValue.trim();
+    const j=jobs.find(x=>x.name.toLowerCase()===v.toLowerCase());
+    if(j){ selectJob(j.name); hint.textContent='QR → '+j.name; }
+    else { $('jName').value=v; hint.textContent='QR: '+v+' (ยังไม่มีในรุ่นงาน)'; }
+  }catch(e){ alert('QR error: '+e.message); }
+};
+
+/* =====================================================================
+   บันทึก / สถิติ
+   ===================================================================== */
+function record(status){
+  const now=new Date();
+  const marks=(last.marks||[]).map(m=>`${m.type}@${Math.round(m.idx/NA*360)}°`).join(' | ')||'-';
+  logs.unshift({time:now.toLocaleTimeString('en-GB'), iso:now.toISOString(),
+    job:curJob?curJob.name:'-', target, count:last.k, status,
+    reasons:(last.reasons||[]).join(' | ')||'-', marks,
+    sim:last.sim==null?null:+last.sim.toFixed(1),
+    maxDev:last.score?+(last.score.rel*100).toFixed(1):null,
+    od:last.mm?+last.mm.od.toFixed(2):null,
+    img:status==='NG'?view.toDataURL('image/jpeg',.75):null});
+  if(logs.length>300) logs.pop();
+  counters.total++; status==='OK'?counters.ok++:counters.ng++;
+  renderLog(); renderStats();
+}
+function renderLog(){
+  $('logStat').textContent=logs.length;
+  const w=$('logWrap');
+  if(!logs.length){ w.innerHTML=`<div class="empty">${T('noLog')}</div>`; return; }
+  let h=`<table><tr><th>time</th><th>job</th><th>T/C</th><th>%</th><th>st</th><th>ng</th><th></th></tr>`;
+  for(let i=0;i<Math.min(logs.length,40);i++){ const r=logs[i];
+    h+=`<tr><td>${r.time}</td><td>${r.job}</td><td>${r.target}/${r.count}</td>`+
+       `<td>${r.sim==null?'–':r.sim}</td><td class="${r.status==='OK'?'st-ok':'st-ng'}">${r.status}</td>`+
+       `<td style="font-size:11px">${r.reasons==='-'?'':r.reasons}</td>`+
+       `<td>${r.img?`<img src="${r.img}" data-i3="${i}">`:''}</td></tr>`; }
+  w.innerHTML=h+'</table>';
+  w.querySelectorAll('img').forEach(im=>im.onclick=()=>dl(logs[+im.dataset.i3].img, ngName(logs[+im.dataset.i3])));
+}
+const ngName=r=>`NG_${r.job}_${r.iso.replace(/[:.]/g,'-')}.jpg`;
+function dl(href,name){ const a=document.createElement('a'); a.href=href; a.download=name; a.click(); }
+
+function bar(ctx,W,H,labels,values,color){
+  ctx.clearRect(0,0,W,H);
+  if(!values.length){ ctx.fillStyle='#9AA3AD'; ctx.font='14px sans-serif'; ctx.fillText('—',10,24); return; }
+  const mx=Math.max(...values,1), padL=8, padB=42, bw=(W-padL*2)/values.length;
+  ctx.font='12px '+getComputedStyle(document.body).fontFamily;
+  values.forEach((v,i)=>{
+    const h=(H-padB-16)*v/mx, x=padL+i*bw+4, y=H-padB-h;
+    ctx.fillStyle=color; ctx.fillRect(x,y,bw-8,h);
+    ctx.fillStyle='#14181E'; ctx.textAlign='center';
+    ctx.fillText(v, x+(bw-8)/2, y-4);
+    const words=String(labels[i]).split(' ');
+    words.slice(0,3).forEach((wd,k)=>ctx.fillText(wd, x+(bw-8)/2, H-padB+14+k*13));
+  });
+  ctx.textAlign='start';
+}
+function lineChart(ctx,W,H,vals,limit){
+  ctx.clearRect(0,0,W,H);
+  if(!vals.length){ ctx.fillStyle='#9AA3AD'; ctx.font='14px sans-serif'; ctx.fillText('—',10,24); return; }
+  const mx=Math.max(limit*1.4,...vals), padL=38, padB=20, w=W-padL-10, h=H-padB-14;
+  const X=i=>padL+w*i/Math.max(1,vals.length-1), Y=v=>14+h-h*v/mx;
+  ctx.strokeStyle='#D6D2C9'; ctx.beginPath(); ctx.moveTo(padL,14); ctx.lineTo(padL,14+h); ctx.lineTo(padL+w,14+h); ctx.stroke();
+  ctx.strokeStyle='#D22B2B'; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(padL,Y(limit)); ctx.lineTo(padL+w,Y(limit)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle='#14181E'; ctx.lineWidth=1.6; ctx.beginPath();
+  vals.forEach((v,i)=>i?ctx.lineTo(X(i),Y(v)):ctx.moveTo(X(i),Y(v))); ctx.stroke();
+  vals.forEach((v,i)=>{ ctx.fillStyle=v>limit?'#D22B2B':'#14875A'; ctx.beginPath(); ctx.arc(X(i),Y(v),2.6,0,7); ctx.fill(); });
+  ctx.fillStyle='#6B7480'; ctx.font='11px '+getComputedStyle(document.body).fontFamily;
+  ctx.fillText(mx.toFixed(1)+'%',2,18); ctx.fillText('0',2,14+h);
+}
+function renderStats(){
+  $('kTotal').textContent=counters.total; $('kOK').textContent=counters.ok; $('kNG').textContent=counters.ng;
+  $('kRate').textContent=counters.total?(100*counters.ng/counters.total).toFixed(1):'0';
+  const tally={};
+  logs.filter(r=>r.status==='NG').forEach(r=>r.reasons.split(' | ').forEach(x=>{ if(x&&x!=='-') tally[x]=(tally[x]||0)+1; }));
+  const ks=Object.keys(tally).sort((a,b)=>tally[b]-tally[a]).slice(0,5);
+  bar($('cPareto').getContext('2d'),700,300,ks,ks.map(k=>tally[k]),'#E2650D');
+  const tr=logs.filter(r=>r.maxDev!=null).slice(0,40).reverse().map(r=>r.maxDev);
+  lineChart($('cTrend').getContext('2d'),700,300,tr,shpFrac*100);
+}
+$('kReset').onclick=()=>{ counters={total:0,ok:0,ng:0}; renderStats(); };
+$('btnCsv').onclick=()=>{
+  const head='time,job,target,count,status,reasons,marks,match%,maxDev%,OD_mm\n';
+  const body=logs.map(r=>[r.iso,r.job,r.target,r.count,r.status,r.reasons,r.marks,
+    r.sim??'',r.maxDev??'',r.od??''].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  dl(URL.createObjectURL(new Blob(['\ufeff'+head+body],{type:'text/csv;charset=utf-8'})),
+     `gear_inspect_${new Date().toISOString().slice(0,10)}.csv`);
+};
+$('btnImgs').onclick=()=>{ const n=logs.filter(r=>r.img); if(!n.length){ alert('—'); return; }
+  n.forEach((r,i)=>setTimeout(()=>dl(r.img,ngName(r)),i*350)); };
+$('btnClear').onclick=()=>{ if(confirm('Clear log?')){ logs=[]; renderLog(); renderStats(); } };
+$('btnShot').onclick=()=>{ if(!last||last.none) return; record(last.reasons.length?'NG':'OK'); };
+
+/* ---------- ส่งออก/นำเข้ารุ่นงาน ---------- */
+$('btnExport').onclick=()=>dl(URL.createObjectURL(new Blob([JSON.stringify(jobs,null,1)],{type:'application/json'})),'gear_jobs.json');
+$('btnImport').onclick=()=>$('impJob').click();
+$('impJob').onchange=e=>{ const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{ const d=JSON.parse(rd.result);
+      if(Array.isArray(d)){ d.forEach(nj=>{ const i=jobs.findIndex(j=>j.name===nj.name); if(i>=0) jobs[i]=nj; else jobs.push(nj); });
+        saveJobs(); renderJobs(); } }catch(err){ alert('JSON error'); } };
+  rd.readAsText(f); };
+
+/* =====================================================================
+   ตัวควบคุม
+   ===================================================================== */
+function setTarget(v){ target=Math.max(4,Math.min(120,v|0)); $('target').value=target; $('dSet').textContent=target;
+  history.length=0; lockedKey=null; }
+$('target').oninput=e=>setTarget(parseInt(e.target.value,10)||4);
+$('tPlus').onclick=()=>setTarget(target+1);
+$('tMinus').onclick=()=>setTarget(target-1);
+$('btnTeach').onclick=()=>{ if(last&&!last.none) setTarget(last.k); };
+$('btnStart').onclick=start; $('btnStop').onclick=stopCam;
+$('sRoi').oninput=e=>{ roiFrac=+e.target.value/100; $('vRoi').textContent=e.target.value+'%'; curNR=0; history.length=0; };
+$('sSens').oninput=e=>{ sens=+e.target.value; $('vSens').textContent=sens; history.length=0; };
+$('sHold').oninput=e=>{ holdN=+e.target.value; $('vHold').textContent=holdN; history.length=0; };
+$('sSig').oninput=e=>{ sigLim=+e.target.value; $('vSig').textContent=sigLim; history.length=0; };
+$('sShp').oninput=e=>{ shpFrac=+e.target.value/100; $('vShp').textContent=e.target.value+'%'; history.length=0; renderStats(); };
+$('sDef').oninput=e=>{ dsens=+e.target.value; $('vDef').textContent=dsens; history.length=0; };
+$('cAuto').onchange=e=>autoCenter=e.target.checked;
+$('cNorm').onchange=e=>{ lowC=e.target.checked; history.length=0; };
+$('cSound').onchange=e=>soundOn=e.target.checked;
+$('lang').onchange=e=>{ lang=e.target.value; store.set('lang',lang); applyLang(); };
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab));
+  if(b.dataset.tab==='stats') renderStats();
+});
+$('btnDemo').onclick=()=>{ document.body.classList.add('demo');
+  if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{}); };
+$('demoOut').onclick=()=>{ document.body.classList.remove('demo');
+  if(document.fullscreenElement&&document.exitFullscreen) document.exitFullscreen().catch(()=>{}); };
+function setCenter(ev){ const r=view.getBoundingClientRect(), t=ev.touches?ev.touches[0]:ev;
+  cx=(t.clientX-r.left)/r.width*PW; cy=(t.clientY-r.top)/r.height*PH;
+  history.length=0; lockedKey=null; if(!running) drawOverlay(); }
+view.addEventListener('click',setCenter);
+view.addEventListener('touchstart',e=>{ e.preventDefault(); setCenter(e); },{passive:false});
+
+/* ---------- init ---------- */
+(async function(){
+  const l=await store.get('lang'); if(l) { lang=l; $('lang').value=l; }
+  const j=await store.get('jobs2'); if(Array.isArray(j)) jobs=j;
+  const cj=await store.get('curJob'); if(cj) curJob=jobs.find(x=>x.name===cj)||null;
+  if(curJob) setTarget(curJob.teeth); else setTarget(20);
+  applyLang(); renderJobs(); renderLog(); renderStats();
+  vctx.fillStyle='#0E1116'; vctx.fillRect(0,0,PW,PH);
+  vctx.fillStyle='#3A4250'; vctx.font='13px system-ui'; vctx.textAlign='center';
+  vctx.fillText(T('start'),PW/2,PH/2); vctx.textAlign='start';
+  drawOverlay(); hint.textContent=T('msgAim');
+  if(location.protocol==='file:') warn('file:// — เบราว์เซอร์จะไม่ให้ใช้กล้อง ต้องเปิดผ่าน https หรือ localhost');
+  setInterval(()=>{ if(curJob) store.set('curJob',curJob.name); },5000);
+})();
+</script>
