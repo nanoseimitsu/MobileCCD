@@ -327,7 +327,8 @@ th:{appName:'ตรวจเฟืองอัตโนมัติ',mInspect:'�
  countBad:'จำนวนไม่ตรง',shapeBad:'รูปทรงผิด',toothMiss:'ขาด/แตก',toothWear:'สึก/สั้น',noMaster:'ยังไม่มีมาสเตอร์',
  msgAim:'วางชิ้นงานในวงกลม แตะที่ภาพเพื่อย้ายจุดศูนย์กลาง',msgNoPart:'ยังจับขอบไม่ได้ ใช้พื้นสีตัดกันและปรับขนาดวงตรวจ',
  measuring:'กำลังวัด…',useMaster:'ใช้เป็นมาสเตอร์',useInspect:'ตรวจภาพนี้',teachStep:'มาสเตอร์ตัวที่',
- pickJob:'เลือกหรือสร้างรุ่นงานก่อน',featGear:'ฟันเฟือง',featBlade:'ใบพัด',featFin:'ซี่ครีบ',
+ pickJob:'เลือกหรือสร้างรุ่นงานก่อน',featGear:'ฟันเฟือง',featBlade:'ใบพัด',featFin:'ซี่ครีบ',featHole:'รูสลัก',featSpline:'ร่องสไปลน์',
+ bandIn:'ขอบในแถบสแกน',bandOut:'ขอบนอกแถบสแกน',autoBand:'หาแถบอัตโนมัติ',bandSet:'แถบสแกน',
  hiresOn:'ภาพละเอียดสูง'},
 en:{appName:'Gear inspection',mInspect:'Inspect',mInspectS:'Live camera, OK/NG',mTeach:'Teach',
  mTeachS:'Capture masters from stills',mJobs:'Jobs',mJobsS:'Part no, masters, calibration',mStats:'Stats',
@@ -344,7 +345,8 @@ en:{appName:'Gear inspection',mInspect:'Inspect',mInspectS:'Live camera, OK/NG',
  noMaster:'No master yet',msgAim:'Place the part in the circle, tap to move centre',
  msgNoPart:'No edge found — use a contrasting background and adjust ROI',measuring:'Measuring…',
  useMaster:'Use as master',useInspect:'Inspect this image',teachStep:'Master no.',pickJob:'Select or create a job first',
- featGear:'Gear teeth',featBlade:'Blades',featFin:'Fins',hiresOn:'High-res'},
+ featGear:'Gear teeth',featBlade:'Blades',featFin:'Fins',featHole:'Bolt holes',featSpline:'Splines',
+ bandIn:'Band inner',bandOut:'Band outer',autoBand:'Auto band',bandSet:'Scan band',hiresOn:'High-res'},
 ja:{appName:'歯車自動検査',mInspect:'検査',mInspectS:'ライブ判定',mTeach:'ティーチ',
  mTeachS:'静止画でマスタ登録',mJobs:'機種',mJobsS:'品番・マスタ・校正',mStats:'統計',
  mStatsS:'歩留り・パレート・推移',mSet:'検出設定',mGuide:'使い方',ready:'準備完了',
@@ -359,7 +361,8 @@ ja:{appName:'歯車自動検査',mInspect:'検査',mInspectS:'ライブ判定',m
  countBad:'数量不一致',shapeBad:'形状公差外',toothMiss:'欠け',toothWear:'摩耗',noMaster:'マスタ未登録',
  msgAim:'ワークを円内に置きタップで中心移動',msgNoPart:'外形未検出 背景と検査円を調整',
  measuring:'測定中…',useMaster:'マスタにする',useInspect:'この画像を検査',teachStep:'マスタ',
- pickJob:'先に機種を選択',featGear:'歯車',featBlade:'羽根',featFin:'フィン',hiresOn:'高解像'}};
+ pickJob:'先に機種を選択',featGear:'歯車',featBlade:'羽根',featFin:'フィン',featHole:'ボルト穴',featSpline:'スプライン',
+ bandIn:'帯 内側',bandOut:'帯 外側',autoBand:'帯を自動検出',bandSet:'走査帯',hiresOn:'高解像'}};
 let lang='th';
 const T=k=>(I18N[lang][k]||I18N.th[k]||k);
 const $=id=>document.getElementById(id);
@@ -376,8 +379,11 @@ function applyLang(){
 const FEATURES={
   gear :{key:'featGear' ,kmin:6,kmax:90},
   blade:{key:'featBlade',kmin:3,kmax:40},
-  fin  :{key:'featFin'  ,kmin:6,kmax:120}
+  fin  :{key:'featFin'  ,kmin:6,kmax:120},
+  hole  :{key:'featHole'  ,kmin:3,kmax:40,mode:'ring'},
+  spline:{key:'featSpline',kmin:4,kmax:60,mode:'ring'}
 };
+const isRing=()=>!!(FEATURES[(curJob&&curJob.feature)||'gear'].mode==='ring');
 
 /* ---------------- storage ---------------- */
 const mem={};
@@ -598,8 +604,11 @@ function ringAnalyze(cx,cy,Rpart,o,band){
   let kBest, lo, hi;
   if(auto){
     const sp=ringSpectrum(kMin,kMax);
-    let best=sp[0];
-    for(const x of sp) if(x.q>best.q) best=x;
+    let best=null;
+    /* ถ้ารู้จำนวนที่ต้องการอยู่แล้ว ให้เลือกแถบที่นับได้ตรงก่อน
+       กันไม่ให้ไปล็อกกับลายอื่นที่คมกว่า เช่น ขอบเจาะเคาน์เตอร์บอร์ */
+    if(o.target) for(const x of sp) if(x.k===o.target && (!best||x.q>best.q)) best=x;
+    if(!best){ best=sp[0]; for(const x of sp) if(x.q>best.q) best=x; }
     kBest=best.k;
     lo=best.ri; hi=best.ri;
     while(lo>0   && sp[lo-1].k===kBest && sp[lo-1].q>.45*best.q) lo--;
@@ -633,8 +642,18 @@ function ringAnalyze(cx,cy,Rpart,o,band){
   cmean(sig,baseA,w);
   const d2=new Float32Array(NA);
   for(let j=0;j<NA;j++) d2[j]=sig[j]-baseA[j];
-  const amp=pct(d2,.97)-pct(d2,.03);
+  let amp=pct(d2,.97)-pct(d2,.03);
   if(amp<1.2) return null;
+  if(o.eq!==false){        /* ไฟส่องข้างเดียวทำให้ลายฝั่งมืดจาง ปรับให้เท่ากันก่อน */
+    const wq=(Math.max(5,Math.round(2.2*NA/kBest))|1), hq=wq>>1;
+    const sq=new Float32Array(NA);
+    for(let j=0;j<NA;j++){ let e=0;
+      for(let q=-hq;q<=hq;q++){ const v=d2[((j+q)%NA+NA)%NA]; e+=v*v; }
+      sq[j]=Math.sqrt(e/wq); }
+    const md=pct(sq,.5)||1e-6;
+    for(let j=0;j<NA;j++) d2[j]=d2[j]/Math.max(sq[j],.35*md)*md;
+    amp=pct(d2,.97)-pct(d2,.03);
+  }
   const pitch=NA/kBest;
   let off=0,bs=-1e18;
   for(let q=0;q<Math.round(pitch);q++){ let s2=0;
@@ -773,6 +792,18 @@ function buildSettings(host,compact){
   toggle(inner,T('autoC'),cfg.autoC,v=>cfg.autoC=v);
   toggle(inner,T('lowC'),cfg.lowC,v=>{cfg.lowC=v;resetJudge();});
   toggle(inner,T('hires'),cfg.hires,v=>cfg.hires=v);
+  if(isRing()){
+    const b=(curJob&&curJob.band)||[.5,.8];
+    slider(inner,T('bandIn'),'bIn',10,90,Math.round(b[0]*100),v=>v+'%',v=>{
+      const cur=(curJob.band||[.5,.8]).slice(); cur[0]=Math.min(v/100,cur[1]-.05); curJob.band=cur; saveJobs(); resetJudge(); });
+    slider(inner,T('bandOut'),'bOut',15,98,Math.round(b[1]*100),v=>v+'%',v=>{
+      const cur=(curJob.band||[.5,.8]).slice(); cur[1]=Math.max(v/100,cur[0]+.05); curJob.band=cur; saveJobs(); resetJudge(); });
+    const r=document.createElement('div'); r.className='row'; r.style.marginTop='10px';
+    const btn=document.createElement('button'); btn.className='sm'; btn.textContent=T('autoBand');
+    btn.onclick=()=>{ if(curJob){ delete curJob.band; saveJobs(); resetJudge();
+      if(stillCanvas&&document.getElementById('s-still').classList.contains('on')) analyzeStill(); } };
+    r.appendChild(btn); inner.appendChild(r);
+  }
   const n=document.createElement('div'); n.className='note';
   n.textContent=lang==='th'
    ?'σ คือจำนวนเท่าของความผันแปรที่เรียนจากมาสเตอร์ ยิ่งน้อยยิ่งเข้ม ขีดจำกัดรูปทรงคิดเป็น % ของความสูงฟัน'
@@ -839,11 +870,23 @@ function loop(ts){
   requestAnimationFrame(loop);
 }
 function opts(){ const f=FEATURES[(curJob&&curJob.feature)||'gear'];
-  return {sens:cfg.sens,lowC:cfg.lowC,autoCenter:cfg.autoC,kmin:f.kmin,kmax:f.kmax}; }
+  return {sens:cfg.sens,lowC:cfg.lowC,autoCenter:cfg.autoC,kmin:f.kmin,kmax:f.kmax,
+          target:curJob?curJob.teeth:0, band:(curJob&&curJob.band)||null}; }
+/* เลือกอัลกอริทึมตามชนิดงาน: ขอบนอก หรือ สแกนวงใน */
+function runFeature(img,W,H,px,py,R){
+  return isRing()? AN.runRing(img,W,H,px,py,R,opts()) : AN.run(img,W,H,px,py,R,opts());
+}
+/* จำแถบที่หาเจอไว้กับรุ่นงาน จะได้ไม่ต้องค้นใหม่ทุกครั้ง */
+function rememberBand(res){
+  if(!curJob||!res||res.none||!res.ring||curJob.band) return;
+  const Rp=res.tipMed||res.mean;
+  curJob.band=[+(res.ring.r0/Rp).toFixed(3),+(res.ring.r1/Rp).toFixed(3)];
+  saveJobs();
+}
 
 function liveAnalyze(){
   const R=cfg.roi*Math.min(LW,LH);
-  const res=AN.run(camCtx.getImageData(0,0,LW,LH),LW,LH,cx,cy,R,opts());
+  const res=runFeature(camCtx.getImageData(0,0,LW,LH),LW,LH,cx,cy,R);
   if(res&&!res.none){ cx=res.cx; cy=res.cy; }
   last=res?judgeResult(res,false):null;
   paint();
@@ -859,7 +902,7 @@ function hiresCapture(){
   const s=Math.max(HW/vw,HH/vh),dw=vw*s,dh=vh*s;
   g.drawImage(video,(HW-dw)/2,(HH-dh)/2,dw,dh);
   const k=HW/LW;
-  const res=AN.run(g.getImageData(0,0,HW,HH),HW,HH,cx*k,cy*k,cfg.roi*Math.min(HW,HH),opts());
+  const res=runFeature(g.getImageData(0,0,HW,HH),HW,HH,cx*k,cy*k,cfg.roi*Math.min(HW,HH));
   return res&&!res.none?{res,canvas:c,ctx:g,W:HW,H:HH}:null;
 }
 
@@ -951,6 +994,11 @@ function overlay(ctx,W,H,ox,oy,R,res){
   ctx.save();
   ctx.strokeStyle='rgba(23,154,246,.85)'; ctx.lineWidth=Math.max(1.5,W/300); ctx.setLineDash([W/55,W/70]);
   ctx.beginPath(); ctx.arc(ox,oy,R,0,7); ctx.stroke(); ctx.setLineDash([]);
+  if(res&&res.ring){
+    ctx.strokeStyle='rgba(255,196,0,.9)'; ctx.lineWidth=Math.max(1.5,W/320); ctx.setLineDash([W/90,W/90]);
+    ctx.beginPath(); ctx.arc(ox,oy,res.ring.r0,0,7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(ox,oy,res.ring.r1,0,7); ctx.stroke(); ctx.setLineDash([]);
+  }
   if(res&&!res.none&&res.prof){
     const ng=res.reasons&&res.reasons.length;
     ctx.beginPath();
@@ -1040,9 +1088,9 @@ function analyzeStill(){
   const W=stillCanvas.width,H=stillCanvas.height;
   const g=stillCanvas.getContext('2d',{willReadFrequently:true});
   const R=stillRoi*Math.min(W,H);
-  const res=AN.run(g.getImageData(0,0,W,H),W,H,stillCx,stillCy,R,opts());
+  const res=runFeature(g.getImageData(0,0,W,H),W,H,stillCx,stillCy,R);
   stillRes=(res&&!res.none)?res:null;
-  if(stillRes){ stillCx=res.cx; stillCy=res.cy; }
+  if(stillRes){ stillCx=res.cx; stillCy=res.cy; rememberBand(stillRes); }
   stCtx.drawImage(stillCanvas,0,0);
   overlay(stCtx,W,H,stillCx,stillCy,R,stillRes?judgeResult(stillRes,true):null);
   $('stillHint').textContent=stillRes
@@ -1254,7 +1302,8 @@ function renderGuide(){
    ['คาลิเบรต','วัด OD มาสเตอร์ด้วยเวอร์เนียร์ กรอกครั้งเดียว จะได้ค่ามิลลิเมตรตอนตรวจ'],
    ['ตรวจงาน','กล้องสดคัดกรองจำนวน พอค่านิ่งระบบยิงภาพละเอียดสูงเองแล้วตัดสินรูปทรงจากภาพนั้น'],
    ['อ่านผล','เขียว OK แดง NG วงแดงชี้ซี่ที่มีปัญหาพร้อมมุมองศา ชิ้น NG ถูกจับภาพเก็บอัตโนมัติ'],
-   ['ข้อจำกัด','จับความเสียหายได้ตั้งแต่ราว 60% ของความสูงฟันขึ้นไป รอยบิ่นเล็กกว่านั้นยังไม่เห็น และค่ามิลลิเมตรคลาดเคลื่อน ±0.3–0.5 mm']];
+   ['โหมดสแกนวงใน','สำหรับรูสลักและร่องสไปลน์ ระบบหาเส้นรอบนอกเพื่อจับศูนย์กลางก่อน แล้วสแกนวงแหวนด้านใน ตั้งจำนวนที่ต้องการไว้ก่อนจะช่วยให้หาแถบได้ตรง ปรับแถบเองได้ในตั้งค่า'],
+   ['ข้อจำกัด','จับความเสียหายได้ตั้งแต่ราว 60% ของความสูงฟันขึ้นไป รอยบิ่นเล็กกว่านั้นยังไม่เห็น ค่ามิลลิเมตรคลาดเคลื่อน ±0.3–0.5 mm ส่วนโหมดวงในต้องการไฟกระจายสม่ำเสมอ เพราะอ่านจากความสว่างไม่ใช่เงาขอบ']];
   g.innerHTML=th.map(([t,d],i)=>`<div style="margin-bottom:14px"><b>${i+1}. ${t}</b><div class="note" style="margin-top:3px">${d}</div></div>`).join('');
 }
 
