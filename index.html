@@ -1,10 +1,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#179AF6">
+<meta name="theme-color" content="#1E4CD2">
 <title>Gear Inspector v3</title>
 <style>
 :root{
-  --brand:#179AF6; --brand-d:#0B72C4; --ink:#12161C; --panel:#F1F0ED; --card:#FFF;
+  --brand:#1E4CD2; --brand-d:#15379B; --ink:#12161C; --panel:#F1F0ED; --card:#FFF;
   --line:#DCD8D1; --steel:#6D7682; --dark:#0C0F14; --ok:#12885A; --ng:#D5342B; --warn:#C9871A;
   --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   --sans:system-ui,-apple-system,"Noto Sans Thai","Noto Sans JP",sans-serif;
@@ -43,7 +43,7 @@ input[type=range]{flex:1;accent-color:var(--brand)}
 /* ---------- หน้ากล้อง ---------- */
 #s-cam{background:#000}
 .camwrap{position:relative;flex:1;overflow:hidden;background:#000}
-#cam,#still{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#cam,#still{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;touch-action:none}
 .ctop{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding:calc(var(--sat) + 8px) 10px 8px;
   background:linear-gradient(rgba(0,0,0,.55),transparent);z-index:3}
 .ctop .chip{background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:5px 11px;font-size:13px}
@@ -217,14 +217,24 @@ canvas.chart{width:100%;height:auto;display:block}
 <div class="screen" id="s-teach">
   <div class="bar"><button class="back" data-home>‹</button><h2 data-i="mTeach">สอนงาน</h2></div>
   <div class="scroll">
-    <div class="card"><h3 data-i="jobTitle">รุ่นงาน</h3><div class="in">
+    <div class="card"><h3 data-i="step1">1 · เลือกสิ่งที่จะนับ</h3><div class="in">
+      <div class="row" id="featRow"></div>
+      <div class="note" data-i="featNote">หนึ่งรุ่นงานตั้งได้หลายอย่าง เช่น ฟันเฟือง 17 และ ร่อง 3 แตะเพื่อสลับรายการที่กำลังตั้งค่า</div>
+    </div></div>
+    <div class="card"><h3 data-i="step2">2 · รุ่นงาน</h3><div class="in">
       <div class="row"><select id="teachJob" style="flex:1"></select></div>
       <div class="row"><input id="jName" type="text" placeholder="Part No." style="flex:1">
-        <input id="jTeeth" type="number" placeholder="จำนวน" min="3" max="150" style="width:88px">
         <button class="sm" id="jAdd" data-i="add">เพิ่ม</button></div>
-      <div class="row" id="featRow"></div>
     </div></div>
-    <div class="card"><h3 data-i="masterTitle">มาสเตอร์ OK</h3><div class="in">
+    <div class="card"><h3 data-i="step3">3 · จำนวนที่ต้องการ</h3><div class="in">
+      <div class="row">
+        <span class="lbl" style="width:104px" id="cntLbl">—</span>
+        <div class="stepper"><button id="tMinus">−</button>
+          <input id="target" type="number" value="0" min="0" max="150" inputmode="numeric">
+          <button id="tPlus">+</button></div>
+      </div>
+    </div></div>
+    <div class="card"><h3 data-i="step4">4 · มาสเตอร์ OK</h3><div class="in">
       <div class="row"><div class="dots" id="dotsOK"></div><span class="lbl" id="mCount" style="margin-left:auto"></span></div>
       <div class="row" style="margin-top:12px">
         <button class="br" id="mCam" style="flex:1" data-i="capCam">ถ่ายภาพเก็บมาสเตอร์</button>
@@ -325,12 +335,17 @@ th:{appName:'ตรวจเฟืองอัตโนมัติ',mInspect:'�
  sSensL:'ความไวขอบ',sHoldL:'เฟรมยืนยัน',sSigL:'ขีดจำกัด σ',sShpL:'ขีดจำกัดรูปทรง',sDefL:'ตรวจชำรุด (ไม่มีมาสเตอร์)',
  sound:'เสียง + สั่นเตือน',autoC:'ปรับศูนย์กลางอัตโนมัติ',lowC:'โหมดคอนทราสต์ต่ำ',hires:'ยิงภาพละเอียดสูงตอนตัดสิน',
  countBad:'จำนวนไม่ตรง',shapeBad:'รูปทรงผิด',toothMiss:'ขาด/แตก',toothWear:'สึก/สั้น',noMaster:'ยังไม่มีมาสเตอร์',
+ capL:'เก็บภาพ',capOff:'ไม่เก็บ',capNG2:'เฉพาะ NG',capAll:'ทุกครั้ง',stillMsL:'ต้องนิ่งก่อน',
+ step1:'1 · เลือกสิ่งที่จะนับ',step2:'2 · รุ่นงาน',step3:'3 · จำนวนที่ต้องการ',step4:'4 · มาสเตอร์ OK',featNote:'หนึ่งรุ่นงานตั้งได้หลายอย่าง เช่น ฟันเฟือง 17 และ ร่อง 3 แตะเพื่อสลับรายการที่กำลังตั้งค่า',
+ tiltWarn:'กล้องเอียง จัดให้ตั้งฉากกับชิ้นงาน',
  msgAim:'วางชิ้นงานในวงกลม แตะที่ภาพเพื่อย้ายจุดศูนย์กลาง',msgNoPart:'ยังจับขอบไม่ได้ ใช้พื้นสีตัดกันและปรับขนาดวงตรวจ',
  measuring:'กำลังวัด…',useMaster:'ใช้เป็นมาสเตอร์',useInspect:'ตรวจภาพนี้',teachStep:'มาสเตอร์ตัวที่',
  pickJob:'เลือกหรือสร้างรุ่นงานก่อน',featGear:'ฟันเฟือง',featBlade:'ใบพัด',featFin:'ซี่ครีบ',featHole:'รูสลัก',featSpline:'ร่องสไปลน์',
  bandIn:'ขอบในแถบสแกน',bandOut:'ขอบนอกแถบสแกน',autoBand:'หาแถบอัตโนมัติ',bandSet:'แถบสแกน',
  hiresOn:'ภาพละเอียดสูง'},
-en:{appName:'Gear inspection',mInspect:'Inspect',mInspectS:'Live camera, OK/NG',mTeach:'Teach',
+en:{appName:'Gear inspection',
+ step1:'1 · What to count',step2:'2 · Job',step3:'3 · Target count',step4:'4 · OK masters',featNote:'A job can hold several checks, e.g. 17 teeth and 3 slots. Tap to switch which one you are setting.',
+ mInspect:'Inspect',mInspectS:'Live camera, OK/NG',mTeach:'Teach',
  mTeachS:'Capture masters from stills',mJobs:'Jobs',mJobsS:'Part no, masters, calibration',mStats:'Stats',
  mStatsS:'Yield · Pareto · trend',mSet:'Detection setup',mGuide:'Guide',ready:'READY',
  rCount:'COUNT',rTarget:'TARGET',rSim:'MATCH',pause:'Freeze',logBtn:'Record',retake:'Retake',
@@ -342,7 +357,8 @@ en:{appName:'Gear inspection',mInspect:'Inspect',mInspectS:'Live camera, OK/NG',
  sSensL:'Edge sensitivity',sHoldL:'Confirm frames',sSigL:'σ limit',sShpL:'Shape limit',sDefL:'Defect check (no master)',
  sound:'Sound + vibration',autoC:'Auto centre',lowC:'Low-contrast mode',hires:'High-res capture on judgement',
  countBad:'Count mismatch',shapeBad:'Shape out of tolerance',toothMiss:'Missing/broken',toothWear:'Worn/short',
- noMaster:'No master yet',msgAim:'Place the part in the circle, tap to move centre',
+ noMaster:'No master yet',tiltWarn:'Camera tilted — hold it square to the part',
+ msgAim:'Place the part in the circle, tap to move centre',
  msgNoPart:'No edge found — use a contrasting background and adjust ROI',measuring:'Measuring…',
  useMaster:'Use as master',useInspect:'Inspect this image',teachStep:'Master no.',pickJob:'Select or create a job first',
  featGear:'Gear teeth',featBlade:'Blades',featFin:'Fins',featHole:'Bolt holes',featSpline:'Splines',
@@ -359,6 +375,10 @@ ja:{appName:'歯車自動検査',mInspect:'検査',mInspectS:'ライブ判定',m
  sSensL:'エッジ感度',sHoldL:'確定フレーム',sSigL:'σ限界',sShpL:'形状限界',sDefL:'欠損検査(マスタ無)',
  sound:'音+振動',autoC:'自動芯出し',lowC:'低コントラスト',hires:'判定時に高解像撮影',
  countBad:'数量不一致',shapeBad:'形状公差外',toothMiss:'欠け',toothWear:'摩耗',noMaster:'マスタ未登録',
+ capL:'Save image',capOff:'Off',capNG2:'NG only',capAll:'Every',stillMsL:'Hold steady for',
+ capL:'画像保存',capOff:'なし',capNG2:'NGのみ',capAll:'毎回',stillMsL:'静止時間',
+ step1:'1 · 対象選択',step2:'2 · 機種',step3:'3 · 設定数',step4:'4 · OKマスタ',featNote:'1機種に複数の検査を登録できます(歯17・溝3など)。タップで切替。',
+ tiltWarn:'カメラが傾いています 真上から撮影してください',
  msgAim:'ワークを円内に置きタップで中心移動',msgNoPart:'外形未検出 背景と検査円を調整',
  measuring:'測定中…',useMaster:'マスタにする',useInspect:'この画像を検査',teachStep:'マスタ',
  pickJob:'先に機種を選択',featGear:'歯車',featBlade:'羽根',featFin:'フィン',featHole:'ボルト穴',featSpline:'スプライン',
@@ -372,7 +392,7 @@ function applyLang(){
     if(s){ e.childNodes[0].nodeValue=T(k); s.textContent=T(k+'S'); }
     else e.textContent=T(k);
   });
-  renderFeatRow(); renderJobs(); renderStats(); renderGuide(); renderMaster();
+  renderFeatRow(); renderJobs(); renderStats(); renderGuide(); renderMaster(); syncTarget();
 }
 
 /* ---------------- ชนิดงาน ---------------- */
@@ -383,7 +403,19 @@ const FEATURES={
   hole  :{key:'featHole'  ,kmin:3,kmax:40,mode:'ring'},
   spline:{key:'featSpline',kmin:4,kmax:60,mode:'ring'}
 };
-const isRing=()=>!!(FEATURES[(curJob&&curJob.feature)||'gear'].mode==='ring');
+const isRing=()=>!!(FEATURES[activeFeat()].mode==='ring');
+const activeFeat=()=>(curJob&&curJob.active)||'gear';
+/* หนึ่งรุ่นงานเก็บได้หลายรายการตรวจ แต่ละรายการมีจำนวนและมาสเตอร์ของตัวเอง */
+function chk(job,f){ if(!job) return null; job.checks=job.checks||{};
+  if(!job.checks[f]) job.checks[f]={n:0}; return job.checks[f]; }
+const CK=()=>chk(curJob,activeFeat());
+function migrate(j){                      // ไฟล์รุ่นเก่าที่เก็บ teeth เดี่ยวๆ
+  if(j.checks) return j;
+  const f=j.feature||'gear';
+  j.checks={}; j.checks[f]={n:j.teeth||0,samples:j.samples,model:j.model,band:j.band};
+  j.active=f; delete j.teeth; delete j.samples; delete j.model; delete j.band; delete j.feature;
+  return j;
+}
 
 /* ---------------- storage ---------------- */
 const mem={};
@@ -501,6 +533,11 @@ function measure(kMinF,kMaxF){
   for(let i=0;i<NA;i++) dev[i]=profS[i]-baseA[i];
   const amp=pct(dev,.97)-pct(dev,.03);
   if(amp/mean<.012) return {none:true};
+  /* ความรีของเส้นฐาน = สัญญาณว่ากล้องเอียง (วงกลมที่มองเฉียงจะกลายเป็นวงรี) */
+  let e2r=0,e2i=0;
+  for(let j=0;j<NA;j++){ const a=2*2*Math.PI*j/NA, d=baseA[j]-mean;
+    e2r+=d*Math.cos(a); e2i+=d*Math.sin(a); }
+  const tilt=2*Math.hypot(e2r,e2i)/NA/mean;
   const pitch=NA/kBest;
   let off=0,bs=-1e18;
   for(let o=0;o<Math.round(pitch);o++){let s=0;
@@ -526,7 +563,7 @@ function measure(kMinF,kMaxF){
     if(wr<pitch*.5||wr>pitch*1.6) wr=pitch;
     const bl=Math.max(1,baseA[tp]);
     for(let m=0;m<M;m++){const f=m/M-.5; shapes[n*M+m]=idev(tp+(f<0?f*wl:f*wr))/bl;}}
-  return {none:false,k:kBest,mean,amp,sharp,off,pitch,hs,tipIdx,tipR,rootR,shapes,
+  return {none:false,k:kBest,mean,amp,sharp,off,pitch,hs,tipIdx,tipR,rootR,shapes,tilt,
     tipMed:pct(tipR,.5),rootMed:pct(rootR,.5),runout:Math.max(...tipR)-Math.min(...tipR),
     prof:Float32Array.from(prof)};
 }
@@ -542,7 +579,7 @@ function run(img,w,h,cx,cy,R,o){
   const jump=Math.max(2,Math.round(jb*R/140));
   const c0x=cx,c0y=cy;
   for(let it=0;it<2;it++){
-    polarDP(cx,cy,R,.5,jump,1.0);
+    polarDP(cx,cy,R,(o.inner||.5),jump,(o.rbias||1.0));
     if(o.autoCenter!==false){
       let sx=0,sy=0;
       for(let j=0;j<NA;j++){sx+=prof[j]*COS[j]; sy+=prof[j]*SIN[j];}
@@ -689,7 +726,7 @@ function runRing(img,w,h,cx,cy,R,o){
   return {none:false,mode:'ring',k:r.k,hs:r.hs,tipIdx:r.idx,
     tipR:r.idx.map(()=>rmid),shapes:r.shapes,amp:r.amp,mean:base.mean,
     prof:base.prof,ring:{r0:r.r0,r1:r.r1,rmid,dark:r.dark},
-    tipMed:base.tipMed,rootMed:base.rootMed,runout:base.runout,
+    tipMed:base.tipMed,rootMed:base.rootMed,runout:base.runout,tilt:base.tilt,
     cx:base.cx,cy:base.cy};
 }
 
@@ -732,7 +769,9 @@ return {NA,M,COS,SIN,run,runRing,buildModel,score};
    สถานะ
    ===================================================================== */
 const NA=AN.NA;
-let cfg={roi:.40,sens:5,hold:3,dsens:2,sig:6,shp:.60,sound:true,autoC:true,lowC:true,hires:true};
+let cfg={roi:.40,sens:5,hold:3,dsens:2,sig:6,shp:.60,sound:true,autoC:true,lowC:true,hires:true,
+         capture:'ng',stillMs:1000,cooldown:2000};
+let stableSince=0,lastRecT=0;
 let jobs=[],curJob=null,logs=[],counters={total:0,ok:0,ng:0};
 let stream=null,track=null,video=null,running=false;
 let LW=384,LH=512;                       // ขนาดบัฟเฟอร์กล้องสด
@@ -792,15 +831,24 @@ function buildSettings(host,compact){
   toggle(inner,T('autoC'),cfg.autoC,v=>cfg.autoC=v);
   toggle(inner,T('lowC'),cfg.lowC,v=>{cfg.lowC=v;resetJudge();});
   toggle(inner,T('hires'),cfg.hires,v=>cfg.hires=v);
+  const cr=document.createElement('div'); cr.className='row'; cr.style.marginTop='12px';
+  cr.innerHTML=`<span class="lbl" style="width:104px">${T('capL')}</span>`;
+  [['off',T('capOff')],['ng',T('capNG2')],['all',T('capAll')]].forEach(([v,t])=>{
+    const c=document.createElement('span'); c.className='chip'+(cfg.capture===v?' on':'');
+    c.textContent=t; c.onclick=()=>{ cfg.capture=v; store.set('cfg',cfg); buildSettings(host,compact); };
+    cr.appendChild(c); });
+  inner.appendChild(cr);
+  slider(inner,T('stillMsL'),'sStill',0,30,Math.round(cfg.stillMs/100),v=>(v/10).toFixed(1)+'s',
+    v=>{cfg.stillMs=v*100; store.set('cfg',cfg);});
   if(isRing()){
-    const b=(curJob&&curJob.band)||[.5,.8];
+    const c0=CK(), b=(c0&&c0.band)||[.5,.8];
     slider(inner,T('bandIn'),'bIn',10,90,Math.round(b[0]*100),v=>v+'%',v=>{
-      const cur=(curJob.band||[.5,.8]).slice(); cur[0]=Math.min(v/100,cur[1]-.05); curJob.band=cur; saveJobs(); resetJudge(); });
+      const c=CK(); const cur=(c.band||[.5,.8]).slice(); cur[0]=Math.min(v/100,cur[1]-.05); c.band=cur; saveJobs(); resetJudge(); });
     slider(inner,T('bandOut'),'bOut',15,98,Math.round(b[1]*100),v=>v+'%',v=>{
-      const cur=(curJob.band||[.5,.8]).slice(); cur[1]=Math.max(v/100,cur[0]+.05); curJob.band=cur; saveJobs(); resetJudge(); });
+      const c=CK(); const cur=(c.band||[.5,.8]).slice(); cur[1]=Math.max(v/100,cur[0]+.05); c.band=cur; saveJobs(); resetJudge(); });
     const r=document.createElement('div'); r.className='row'; r.style.marginTop='10px';
     const btn=document.createElement('button'); btn.className='sm'; btn.textContent=T('autoBand');
-    btn.onclick=()=>{ if(curJob){ delete curJob.band; saveJobs(); resetJudge();
+    btn.onclick=()=>{ const c=CK(); if(c){ delete c.band; saveJobs(); resetJudge();
       if(stillCanvas&&document.getElementById('s-still').classList.contains('on')) analyzeStill(); } };
     r.appendChild(btn); inner.appendChild(r);
   }
@@ -823,7 +871,7 @@ function fitBuffer(){
   camCv.width=LW; camCv.height=LH; cx=LW/2; cy=LH/2;
 }
 async function openCam(){
-  if(!curJob){ alert(T('pickJob')); show('teach'); return; }
+  if(!curJob||!CK()||!CK().n){ alert(T('pickJob')); show('teach'); return; }
   show('cam'); fitBuffer(); updateCamChips();
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     $('hint').textContent='ต้องเปิดผ่าน https หรือ localhost'; return; }
@@ -836,8 +884,7 @@ async function openCam(){
   try{
     const c=track.getCapabilities?track.getCapabilities():{};
     if(!c.torch) $('bTorch').style.display='none';
-    if(c.zoom){ const z=$('zoom'); z.min=c.zoom.min; z.max=c.zoom.max; z.step=c.zoom.step||.1; z.value=track.getSettings().zoom||c.zoom.min; }
-    else $('bZoom').style.display='none';
+    optZoom=c.zoom||null; digZoom=1; zoomShown=1;
   }catch(e){}
   running=true; paused=false; resetJudge();
   $('hint').textContent=T('msgAim');
@@ -850,12 +897,19 @@ function stopCam(){
 }
 function updateCamChips(){
   $('camJob').textContent=curJob?curJob.name:'—';
-  $('camFeat').textContent=curJob?T(FEATURES[curJob.feature||'gear'].key):'—';
-  $('dSet').textContent=curJob?curJob.teeth:'–';
+  $('camFeat').textContent=curJob?T(FEATURES[activeFeat()].key):'—';
+  const c=CK(); $('dSet').textContent=c?c.n:'–';
 }
+/* แตะชิปเพื่อสลับรายการตรวจของรุ่นงานนี้ */
+$('camFeat').onclick=()=>{
+  if(!curJob||!curJob.checks) return;
+  const ks=Object.keys(curJob.checks); if(ks.length<2) return;
+  curJob.active=ks[(ks.indexOf(activeFeat())+1)%ks.length];
+  saveJobs(); updateCamChips(); resetJudge();
+};
 function drawFrame(){
   const vw=video.videoWidth,vh=video.videoHeight;
-  const s=Math.max(LW/vw,LH/vh),dw=vw*s,dh=vh*s;
+  const s=Math.max(LW/vw,LH/vh)*digZoom,dw=vw*s,dh=vh*s;
   camCtx.drawImage(video,(LW-dw)/2,(LH-dh)/2,dw,dh);
 }
 function loop(ts){
@@ -869,18 +923,19 @@ function loop(ts){
   }
   requestAnimationFrame(loop);
 }
-function opts(){ const f=FEATURES[(curJob&&curJob.feature)||'gear'];
+function opts(){ const f=FEATURES[activeFeat()], c=CK();
   return {sens:cfg.sens,lowC:cfg.lowC,autoCenter:cfg.autoC,kmin:f.kmin,kmax:f.kmax,
-          target:curJob?curJob.teeth:0, band:(curJob&&curJob.band)||null}; }
+          target:c?c.n:0, band:(c&&c.band)||null}; }
 /* เลือกอัลกอริทึมตามชนิดงาน: ขอบนอก หรือ สแกนวงใน */
 function runFeature(img,W,H,px,py,R){
   return isRing()? AN.runRing(img,W,H,px,py,R,opts()) : AN.run(img,W,H,px,py,R,opts());
 }
 /* จำแถบที่หาเจอไว้กับรุ่นงาน จะได้ไม่ต้องค้นใหม่ทุกครั้ง */
 function rememberBand(res){
-  if(!curJob||!res||res.none||!res.ring||curJob.band) return;
+  const c=CK();
+  if(!c||!res||res.none||!res.ring||c.band) return;
   const Rp=res.tipMed||res.mean;
-  curJob.band=[+(res.ring.r0/Rp).toFixed(3),+(res.ring.r1/Rp).toFixed(3)];
+  c.band=[+(res.ring.r0/Rp).toFixed(3),+(res.ring.r1/Rp).toFixed(3)];
   saveJobs();
 }
 
@@ -899,7 +954,7 @@ function hiresCapture(){
   const c=document.createElement('canvas'); c.width=HW; c.height=HH;
   const g=c.getContext('2d',{willReadFrequently:true});
   const vw=video.videoWidth,vh=video.videoHeight;
-  const s=Math.max(HW/vw,HH/vh),dw=vw*s,dh=vh*s;
+  const s=Math.max(HW/vw,HH/vh)*digZoom,dw=vw*s,dh=vh*s;
   g.drawImage(video,(HW-dw)/2,(HH-dh)/2,dw,dh);
   const k=HW/LW;
   const res=runFeature(g.getImageData(0,0,HW,HH),HW,HH,cx*k,cy*k,cfg.roi*Math.min(HW,HH));
@@ -910,8 +965,8 @@ function hiresCapture(){
    ตัดสินผล
    ===================================================================== */
 function judgeResult(res,hi){
-  const model=curJob&&curJob.model, reasons=[], marks=[];
-  const target=curJob?curJob.teeth:0;
+  const c=CK(), model=c&&c.model, reasons=[], marks=[];
+  const target=c?c.n:0;
   if(res.k!==target) reasons.push(T('countBad'));
   if(model&&model.k===res.k){
     const sc=AN.score(res,model,cfg.sig,cfg.shp);
@@ -929,7 +984,7 @@ function judgeResult(res,hi){
         else if(res.hs[n]<WEAR*medH) marks.push({idx:res.tipIdx[n],r:res.tipR[n],type:T('toothWear')});}
       if(marks.length) reasons.push(T('shapeBad'));}
   }
-  if(curJob&&curJob.odmm&&model){
+  if(curJob&&curJob.odmm&&model&&!res.ring){
     const scale=curJob.odmm/(2*model.tipNorm*res.mean);
     res.mm={od:2*res.tipMed*scale,root:2*res.rootMed*scale,
             h:(res.tipMed-res.rootMed)*scale,runout:res.runout*scale};}
@@ -950,7 +1005,8 @@ function paint(){
   if(last.reasons.length) info.push(last.reasons.join(', '));
   if(last.marks.length) info.push(last.marks.map(m=>m.type+' '+Math.round(m.idx/NA*360)+'°').join(', '));
   if(last.mm) info.push('OD '+last.mm.od.toFixed(2)+'mm');
-  if(!curJob||!curJob.model) info.push(T('noMaster'));
+  if(!CK()||!CK().model) info.push(T('noMaster'));
+  if(last.tilt>.05) info.push(T('tiltWarn')+' ~'+Math.round(Math.acos(Math.max(.1,(1-last.tilt)/(1+last.tilt)))*57)+'°');
   $('hint').textContent=info.join(' • ')||T('msgAim');
 
   history.push(last.k+'|'+last.status+'|'+last.marks.length);
@@ -958,21 +1014,23 @@ function paint(){
   let stable=history.length>=cfg.hold;
   if(stable){const k=history[history.length-1];
     for(let i=history.length-cfg.hold;i<history.length;i++) if(history[i]!==k) stable=false;}
-  if(!stable){ b.className='badge'; b.textContent=T('measuring'); return; }
-  const key=history[history.length-1];
-  if(key!==lockedKey){
-    lockedKey=key;
+  if(!stable){ b.className='badge'; b.textContent=T('measuring'); stableSince=0; return; }
+  const key=history[history.length-1], now=performance.now();
+  if(key!==lockedKey){ if(!stableSince) stableSince=now; }
+  /* ต้องนิ่งต่อเนื่องตามเวลาที่ตั้งไว้ และเว้นระยะจากครั้งก่อน กันถ่ายรัว */
+  if(key!==lockedKey && now-stableSince>=cfg.stillMs && now-lastRecT>=cfg.cooldown){
+    lockedKey=key; stableSince=0; lastRecT=now;
     if(cfg.hires&&video&&!last.hi){
       const hi=hiresCapture();
       if(hi){ last=judgeResult(hi.res,true);
         overlay(hi.ctx,hi.W,hi.H,hi.res.cx,hi.res.cy,cfg.roi*Math.min(hi.W,hi.H),last);
-        record(last,hi.canvas); showBadge(last.status); return; }}
-    record(last,camCv); showBadge(last.status);
-  } else showBadge(last.status);
+        record(last,hi.canvas); showBadge(last.status,true); return; }}
+    record(last,camCv); showBadge(last.status,true);
+  } else showBadge(last.status,false);
 }
-function showBadge(st){
+function showBadge(st,ring){
   const b=$('badge'); b.className='badge '+(st==='OK'?'ok':'ng'); b.textContent=st;
-  if(st==='NG') alarm();
+  if(ring&&st==='NG') alarm();     /* เตือนเฉพาะตอนล็อกผลใหม่ ไม่ใช่ทุกเฟรม */
 }
 let actx=null;
 function alarm(){
@@ -992,7 +1050,7 @@ function alarm(){
 /* ---------------- overlay ---------------- */
 function overlay(ctx,W,H,ox,oy,R,res){
   ctx.save();
-  ctx.strokeStyle='rgba(23,154,246,.85)'; ctx.lineWidth=Math.max(1.5,W/300); ctx.setLineDash([W/55,W/70]);
+  ctx.strokeStyle='rgba(30,76,210,.9)'; ctx.lineWidth=Math.max(1.5,W/300); ctx.setLineDash([W/55,W/70]);
   ctx.beginPath(); ctx.arc(ox,oy,R,0,7); ctx.stroke(); ctx.setLineDash([]);
   if(res&&res.ring){
     ctx.strokeStyle='rgba(255,196,0,.9)'; ctx.lineWidth=Math.max(1.5,W/320); ctx.setLineDash([W/90,W/90]);
@@ -1008,7 +1066,7 @@ function overlay(ctx,W,H,ox,oy,R,res){
     ctx.fillStyle=ng?'rgba(255,190,180,.9)':'rgba(190,255,215,.9)';
     for(const i of res.tipIdx){const r=res.prof[i]+W/60;
       ctx.beginPath(); ctx.arc(ox+r*AN.COS[i],oy+r*AN.SIN[i],Math.max(2,W/190),0,7); ctx.fill();}
-    ctx.strokeStyle='rgba(23,154,246,.95)'; ctx.lineWidth=Math.max(1.2,W/300);
+    ctx.strokeStyle='rgba(30,76,210,.95)'; ctx.lineWidth=Math.max(1.2,W/300);
     ctx.beginPath(); ctx.moveTo(ox-W/45,oy); ctx.lineTo(ox+W/45,oy); ctx.moveTo(ox,oy-W/45); ctx.lineTo(ox,oy+W/45); ctx.stroke();
     if(res.marks) for(const m of res.marks){
       const r=m.r+W/70,x=ox+r*AN.COS[m.idx%NA],y=oy+r*AN.SIN[m.idx%NA],rad=Math.max(W/28,res.mean*.11);
@@ -1028,14 +1086,33 @@ camCv.addEventListener('touchstart',e=>{e.preventDefault();
   tapCenter(e,camCv,LW,LH,(x,y)=>{cx=x;cy=y;resetJudge();});},{passive:false});
 
 /* ---------------- ปุ่มบนหน้ากล้อง ---------------- */
+/* ซูมสองนิ้วเหมือนแอปกล้อง: ใช้ซูมออปติคอลถ้าเครื่องรองรับ ไม่งั้นครอปภาพแทน */
+let digZoom=1, optZoom=null, pinchD=0, pinchBase=1, pinching=false;
+function applyZoom(z){
+  z=Math.max(1,Math.min(6,z));
+  if(optZoom&&track){
+    const v=Math.max(optZoom.min,Math.min(optZoom.max,optZoom.min+(z-1)*(optZoom.max-optZoom.min)/5));
+    track.applyConstraints({advanced:[{zoom:v}]}).catch(()=>{});
+    digZoom=1;
+  } else digZoom=z;
+  zoomShown=z; $('hint').textContent='ZOOM '+z.toFixed(1)+'x';
+}
+let zoomShown=1;
+function dist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+$('camwrap').addEventListener('touchstart',e=>{
+  if(e.touches.length===2){ pinching=true; pinchD=dist(e.touches); pinchBase=zoomShown; e.preventDefault(); }
+},{passive:false});
+$('camwrap').addEventListener('touchmove',e=>{
+  if(pinching&&e.touches.length===2){ e.preventDefault();
+    const d=dist(e.touches); if(pinchD>10) applyZoom(pinchBase*d/pinchD); }
+},{passive:false});
+$('camwrap').addEventListener('touchend',e=>{ if(e.touches.length<2) pinching=false; });
+
 let torchOn=false;
 $('bTorch').onclick=async()=>{ if(!track) return; torchOn=!torchOn;
   $('bTorch').classList.toggle('on',torchOn);
   try{ await track.applyConstraints({advanced:[{torch:torchOn}]}); }catch(e){} };
-$('bZoom').onclick=()=>{ const z=$('zoomWrap'); const on=z.style.display!=='block';
-  z.style.display=on?'block':'none'; $('bZoom').classList.toggle('on',on); };
-$('zoom').oninput=async e=>{ if(!track) return;
-  try{ await track.applyConstraints({advanced:[{zoom:+e.target.value}]}); }catch(err){} };
+$('bZoom').onclick=()=>applyZoom(zoomShown>=2.9?1:zoomShown+1);   /* กดวนทีละขั้น เผื่อไม่ถนัดสองนิ้ว */
 $('bLens').onclick=async()=>{
   try{
     const devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput');
@@ -1072,10 +1149,11 @@ $('galFile').onchange=e=>{
   img.src=URL.createObjectURL(f);
   e.target.value='';
 };
-function openStill(canvas,mode){
+function openStill(canvas,mode,ctr){
   stillCanvas=canvas; stillMode=mode;
   stCv.width=canvas.width; stCv.height=canvas.height;
-  stillCx=canvas.width/2; stillCy=canvas.height/2; stillRoi=cfg.roi;
+  /* ยกจุดศูนย์กลางที่เล็งไว้ตอนกล้องสดมาใช้ต่อ ไม่รีเซ็ตกลับกลางภาพ */
+  stillCx=ctr?ctr.x:canvas.width/2; stillCy=ctr?ctr.y:canvas.height/2; stillRoi=cfg.roi;
   $('sRoi2').value=Math.round(stillRoi*100); $('vRoi2').textContent=Math.round(stillRoi*100)+'%';
   $('stillTitle').textContent=mode==='master'
     ? T('teachStep')+' '+(teachStep+1)+'/5' : T('useInspect');
@@ -1108,12 +1186,13 @@ $('stillRe').onclick=()=>{ if(stillMode==='master') captureMasterShot(); else sh
 $('stillOk').onclick=()=>{
   if(!stillRes) return;
   if(stillMode==='master'){
-    curJob.samples=curJob.samples||[];
-    if(curJob.samples.length>=5) curJob.samples.shift();
-    curJob.samples.push({k:stillRes.k,mean:stillRes.mean,tipMed:stillRes.tipMed,shapes:Array.from(stillRes.shapes)});
-    curJob.model=AN.buildModel(curJob.samples);
-    if(curJob.model) curJob.teeth=curJob.model.k;
-    saveJobs(); teachStep=curJob.samples.length;
+    const c=CK();
+    c.samples=c.samples||[];
+    if(c.samples.length>=5) c.samples.shift();
+    c.samples.push({k:stillRes.k,mean:stillRes.mean,tipMed:stillRes.tipMed,shapes:Array.from(stillRes.shapes)});
+    c.model=AN.buildModel(c.samples);
+    if(c.model) c.n=c.model.k;
+    saveJobs(); syncTarget(); teachStep=c.samples.length;
     if(teachStep<5){ captureMasterShot(); } else { show('teach'); renderMaster(); }
   } else {
     const r=judgeResult(stillRes,true);
@@ -1136,10 +1215,11 @@ $('bShot').onclick=()=>{
   const HW=1024,HH=Math.round(HW*LH/LW);
   const c=document.createElement('canvas'); c.width=HW; c.height=HH;
   const g=c.getContext('2d',{willReadFrequently:true});
-  const vw=video.videoWidth,vh=video.videoHeight,s=Math.max(HW/vw,HH/vh);
+  const vw=video.videoWidth,vh=video.videoHeight,s=Math.max(HW/vw,HH/vh)*digZoom;
   g.drawImage(video,(HW-vw*s)/2,(HH-vh*s)/2,vw*s,vh*s);
-  if(masterPending){ masterPending=false; openStill(c,'master'); }
-  else openStill(c,'inspect');
+  const k=HW/LW;
+  if(masterPending){ masterPending=false; openStill(c,'master',{x:cx*k,y:cy*k}); }
+  else openStill(c,'inspect',{x:cx*k,y:cy*k});
 };
 
 /* =====================================================================
@@ -1150,21 +1230,36 @@ function renderFeatRow(){
   const host=$('featRow'); if(!host) return;
   host.innerHTML='';
   Object.keys(FEATURES).forEach(f=>{
-    const c=document.createElement('span');
-    c.className='chip'+(curJob&&(curJob.feature||'gear')===f?' on':'');
-    c.textContent=T(FEATURES[f].key);
-    c.onclick=()=>{ if(!curJob) return; curJob.feature=f; saveJobs(); renderFeatRow(); };
-    host.appendChild(c);
+    const has=curJob&&curJob.checks&&curJob.checks[f];
+    const el=document.createElement('span');
+    el.className='chip'+(activeFeat()===f?' on':'');
+    el.innerHTML=T(FEATURES[f].key)+(has&&has.n?` <b>${has.n}</b>`:'')+(has&&has.model?' ★':'');
+    el.onclick=()=>{ if(!curJob){ alert(T('pickJob')); return; }
+      curJob.active=f; chk(curJob,f); saveJobs(); renderFeatRow(); renderMaster(); syncTarget(); };
+    host.appendChild(el);
   });
+  const l=$('cntLbl'); if(l) l.textContent=T(FEATURES[activeFeat()].key);
+}
+function syncTarget(){
+  const c=CK(); const t=$('target');
+  if(t) t.value=c?c.n:0;
+  $('dSet').textContent=c?c.n:'–';
+}
+function setTargetVal(v){
+  const c=CK(); if(!c) return;
+  c.n=Math.max(0,Math.min(150,v|0)); saveJobs(); syncTarget(); renderFeatRow(); resetJudge();
+}
+function jobSummary(j){
+  return Object.keys(j.checks||{}).map(f=>T(FEATURES[f].key)+' '+(j.checks[f].n||0)+(j.checks[f].model?'★':'')).join(' · ')||'—';
 }
 function renderJobs(){
   const sel=$('teachJob');
   if(sel){ sel.innerHTML='<option value="">— '+T('jobTitle')+' —</option>'+
-    jobs.map(j=>`<option value="${j.name}">${j.name} · ${j.teeth}${j.model?' ★':''}</option>`).join('');
+    jobs.map(j=>`<option value="${j.name}">${j.name}</option>`).join('');
     if(curJob) sel.value=curJob.name; }
   const list=$('jobList');
-  if(list) list.innerHTML = jobs.length ? '<table><tr><th>Part</th><th>N</th><th>Master</th><th>OD</th><th></th></tr>'+
-    jobs.map((j,i)=>`<tr><td>${j.name}</td><td>${j.teeth}</td><td>${j.model?j.model.n:'–'}</td>
+  if(list) list.innerHTML = jobs.length ? '<table><tr><th>Part</th><th>checks</th><th>OD</th><th></th></tr>'+
+    jobs.map((j,i)=>`<tr><td>${j.name}</td><td style="font-size:12px">${jobSummary(j)}</td>
       <td>${j.odmm?j.odmm:'–'}</td><td><button class="gh sm" data-jd="${i}">✕</button></td></tr>`).join('')+'</table>'
     : `<div class="empty">—</div>`;
   if(list) list.querySelectorAll('[data-jd]').forEach(b=>b.onclick=()=>{
@@ -1172,33 +1267,37 @@ function renderJobs(){
     if(confirm('ลบ '+jobs[i].name+'?')){ if(curJob&&curJob.name===jobs[i].name) curJob=null; jobs.splice(i,1); saveJobs(); }});
   const bn=$('jobBanner');
   if(bn){ if(curJob){ bn.style.display='';
-      bn.textContent=curJob.name+' · '+curJob.teeth+' '+T(FEATURES[curJob.feature||'gear'].key)+
-        (curJob.model?' · master '+curJob.model.n:' · '+T('noMaster'));
+      bn.textContent=curJob.name+' · '+jobSummary(curJob);
     } else { bn.style.display=''; bn.textContent=T('pickJob'); } }
 }
 function renderMaster(){
-  const n=curJob&&curJob.samples?curJob.samples.length:0;
+  const c=CK();
+  const n=c&&c.samples?c.samples.length:0;
   const d=$('dotsOK'); if(d) d.innerHTML=[0,1,2,3,4].map(i=>`<span class="dot${i<n?' f':''}">${i+1}</span>`).join('');
   const mc=$('mCount'); if(mc) mc.textContent=n+'/5';
-  const m=curJob&&curJob.model, info=$('mInfo');
+  const m=c&&c.model, info=$('mInfo');
   if(info) info.textContent=!curJob?'—':(m?`${m.k} · σ ${(m.std.reduce((a,b)=>a+b,0)/AN.M/(m.amp||.05)*100).toFixed(1)}% ${lang==='th'?'ของความสูงฟัน':'of tooth height'}`:T('noMaster'));
   const od=$('odmm'); if(od&&curJob) od.value=curJob.odmm||'';
 }
-$('teachJob').onchange=e=>{ curJob=jobs.find(j=>j.name===e.target.value)||null; saveJobs(); renderFeatRow(); };
+$('teachJob').onchange=e=>{ curJob=jobs.find(j=>j.name===e.target.value)||null;
+  if(curJob) chk(curJob,activeFeat());
+  saveJobs(); renderFeatRow(); syncTarget(); };
 $('jAdd').onclick=()=>{
-  const n=$('jName').value.trim(),t=parseInt($('jTeeth').value,10);
-  if(!n||!(t>=3&&t<=150)){ alert('Part No. + 3–150'); return; }
-  const ex=jobs.find(j=>j.name===n);
-  if(ex) ex.teeth=t; else jobs.push({name:n,teeth:t,feature:'gear'});
-  curJob=jobs.find(j=>j.name===n);
-  $('jName').value=''; $('jTeeth').value=''; saveJobs(); renderFeatRow();
+  const n=$('jName').value.trim();
+  if(!n){ alert('Part No.'); return; }
+  let j=jobs.find(x=>x.name===n);
+  if(!j){ j={name:n,active:activeFeat(),checks:{}}; chk(j,activeFeat()); jobs.push(j); }
+  curJob=j; $('jName').value=''; saveJobs(); renderFeatRow(); syncTarget();
 };
-$('mCam').onclick=()=>{ if(!curJob){alert(T('pickJob'));return;}
-  teachStep=curJob.samples?curJob.samples.length:0; if(teachStep>=5) teachStep=0; captureMasterShot(); };
-$('mGal').onclick=()=>{ if(!curJob){alert(T('pickJob'));return;}
-  teachStep=curJob.samples?curJob.samples.length:0; galTarget='master'; $('galFile').click(); };
-$('mClear').onclick=()=>{ if(!curJob) return;
-  if(confirm(T('clrM')+'?')){ delete curJob.samples; delete curJob.model; teachStep=0; saveJobs(); }};
+$('target').oninput=e=>setTargetVal(parseInt(e.target.value,10)||0);
+$('tPlus').onclick=()=>setTargetVal((CK()?CK().n:0)+1);
+$('tMinus').onclick=()=>setTargetVal((CK()?CK().n:0)-1);
+$('mCam').onclick=()=>{ const c=CK(); if(!c){alert(T('pickJob'));return;}
+  teachStep=c.samples?c.samples.length:0; if(teachStep>=5) teachStep=0; captureMasterShot(); };
+$('mGal').onclick=()=>{ const c=CK(); if(!c){alert(T('pickJob'));return;}
+  teachStep=c.samples?c.samples.length:0; galTarget='master'; $('galFile').click(); };
+$('mClear').onclick=()=>{ const c=CK(); if(!c) return;
+  if(confirm(T('clrM')+'?')){ delete c.samples; delete c.model; teachStep=0; saveJobs(); }};
 $('odSave').onclick=()=>{ if(!curJob) return;
   const v=parseFloat($('odmm').value); if(!(v>0)){alert('mm');return;}
   curJob.odmm=v; saveJobs(); };
@@ -1207,7 +1306,7 @@ $('jImport').onclick=()=>$('jFile').click();
 $('jFile').onchange=e=>{ const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
   r.onload=()=>{ try{ const d=JSON.parse(r.result);
-    if(Array.isArray(d)){ d.forEach(nj=>{const i=jobs.findIndex(j=>j.name===nj.name); i>=0?jobs[i]=nj:jobs.push(nj);}); saveJobs(); }
+    if(Array.isArray(d)){ d.map(migrate).forEach(nj=>{const i=jobs.findIndex(j=>j.name===nj.name); i>=0?jobs[i]=nj:jobs.push(nj);}); saveJobs(); }
   }catch(err){ alert('JSON error'); } };
   r.readAsText(f); };
 
@@ -1219,12 +1318,13 @@ function record(res,canvas,manual){
   const now=new Date();
   const marks=(res.marks||[]).map(m=>`${m.type}@${Math.round(m.idx/NA*360)}°`).join(' | ')||'-';
   logs.unshift({time:now.toLocaleTimeString('en-GB'),iso:now.toISOString(),
-    job:curJob?curJob.name:'-',target:curJob?curJob.teeth:0,count:res.k,status:res.status,
+    job:(curJob?curJob.name:'-')+'/'+T(FEATURES[activeFeat()].key),
+    target:CK()?CK().n:0,count:res.k,status:res.status,
     reasons:(res.reasons||[]).join(' | ')||'-',marks,hi:!!res.hi,
     sim:res.sim==null?null:+res.sim.toFixed(1),
     maxDev:res.score?+(res.score.rel*100).toFixed(1):null,
     od:res.mm?+res.mm.od.toFixed(2):null,
-    img:res.status==='NG'&&canvas?canvas.toDataURL('image/jpeg',.75):null});
+    img:(canvas&&(cfg.capture==='all'||(cfg.capture==='ng'&&res.status==='NG')))?canvas.toDataURL('image/jpeg',.75):null});
   if(logs.length>300) logs.pop();
   counters.total++; res.status==='OK'?counters.ok++:counters.ng++;
   if(manual&&res.status==='NG') alarm();
@@ -1276,7 +1376,7 @@ function renderStats(){
   const tally={};
   logs.filter(r=>r.status==='NG').forEach(r=>r.reasons.split(' | ').forEach(x=>{if(x&&x!=='-')tally[x]=(tally[x]||0)+1;}));
   const ks=Object.keys(tally).sort((a,b)=>tally[b]-tally[a]).slice(0,5);
-  bar($('cPareto').getContext('2d'),700,290,ks,ks.map(k=>tally[k]),'#179AF6');
+  bar($('cPareto').getContext('2d'),700,290,ks,ks.map(k=>tally[k]),'#1E4CD2');
   line($('cTrend').getContext('2d'),700,290,logs.filter(r=>r.maxDev!=null).slice(0,40).reverse().map(r=>r.maxDev),cfg.shp*100);
   renderLog();
 }
@@ -1313,9 +1413,9 @@ window.addEventListener('resize',()=>{ if(running) fitBuffer(); });
 (async function(){
   const l=await store.get('lang'); if(l){lang=l; $('lang').value=l;}
   const c=await store.get('cfg'); if(c) Object.assign(cfg,c);
-  const j=await store.get('jobs3'); if(Array.isArray(j)) jobs=j;
+  const j=await store.get('jobs3'); if(Array.isArray(j)) jobs=j.map(migrate);
   const cj=await store.get('curJob3'); if(cj) curJob=jobs.find(x=>x.name===cj)||null;
-  applyLang(); renderJobs(); renderMaster(); renderStats();
+  applyLang(); renderJobs(); renderMaster(); syncTarget(); renderStats();
   if(location.protocol==='file:'){ const b=$('jobBanner'); b.style.display='';
     b.textContent='เปิดจากไฟล์ (file://) เบราว์เซอร์จะไม่ให้ใช้กล้อง ต้องเปิดผ่าน https'; }
   setInterval(()=>{ if(curJob) store.set('curJob3',curJob.name); },5000);
